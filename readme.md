@@ -70,10 +70,10 @@ export interface Waifu2XOptions {
     rename?: string
 }
 ```
-<details>
-<summary>Example</summary>
-
-[**Source**](https://www.pixiv.net/en/artworks/73851578)
+<details open>
+<summary>
+<a href="https://www.pixiv.net/en/artworks/73851578">Source</a>
+</summary>
 
 `laffey.jpg`
 
