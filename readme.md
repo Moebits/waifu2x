@@ -70,3 +70,12 @@ export interface Waifu2XOptions {
     rename?: string
 }
 ```
+<details>
+<summary>Example</summary>
+
+`laffey.jpg`
+![Laffey](./assets/laffey.jpg)
+
+`laffey2x.png`
+![Laffey2x](./assets/laffey2x.png)
+</details>
