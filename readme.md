@@ -73,9 +73,14 @@ export interface Waifu2XOptions {
 <details>
 <summary>Example</summary>
 
+[**Source**](https://www.pixiv.net/en/artworks/73851578)
+
 `laffey.jpg`
+
 ![Laffey](./assets/laffey.jpg)
 
 `laffey2x.png`
+
 ![Laffey2x](./assets/laffey2x.png)
+
 </details>
