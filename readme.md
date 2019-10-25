@@ -70,7 +70,7 @@ export interface Waifu2XOptions {
     rename?: string
 }
 ```
-<details open>
+<details>
 <summary>
 <a href="https://www.pixiv.net/en/artworks/73851578">Source</a>
 </summary>
