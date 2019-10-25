@@ -77,10 +77,10 @@ export interface Waifu2XOptions {
 
 `laffey.jpg`
 
-![Laffey](./assets/laffey.jpg)
+<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey.jpg" />
 
 `laffey2x.png`
 
-![Laffey2x](./assets/laffey2x.png)
+<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey2x.png" />
 
 </details>
