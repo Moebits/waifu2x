@@ -34,6 +34,13 @@ end of all the new filenames (default is 2x).*/
 waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
 ```
 
+#### Upscaling Gifs
+```ts
+/*Grab some popcorn, because this is going to take centuries without a high-end gpu. The final parameter
+will constrain the gif to a certain number of frames.*/
+await waifu2x.upscaleGif("./images/gifs/megumin.gif", "./images/gifs")
+```
+
 #### Waifu2xFormats
 ```ts
 export type Waifu2xFormats = 

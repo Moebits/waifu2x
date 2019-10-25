@@ -21,7 +21,14 @@
   "author": "Tenpi",
   "license": "MIT",
   "devDependencies": {
+    "@tenpi/tslint": "^1.0.5",
     "@types/node": "^12.11.6",
     "typescript": "^3.6.4"
+  },
+  "dependencies": {
+    "get-pixels": "^3.3.2",
+    "gif-encoder": "^0.7.2",
+    "gif-frames": "^1.0.1",
+    "image-size": "^0.8.3"
   }
 }
