@@ -154,14 +154,14 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest: string, constrain?: number) => {
+    public static upscaleGIF = async (source: string, dest: string, constraint?: number) => {
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all"})
         const {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
         if (!fs.existsSync(frameDest)) fs.mkdirSync(frameDest, {recursive: true})
         let step = 1
-        if (constrain) step = Math.ceil(frames.length / constrain)
+        if (constraint && (constraint !== Infinity)) step = Math.ceil(frames.length / constraint)
         const frameArray: string[] = []
         async function downloadFrames(frames: any) {
             const promiseArray = []
@@ -180,6 +180,21 @@ export default class Waifu2x {
         const scaledFrames = fs.readdirSync(upScaleDest)
         const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`)
         await Waifu2x.encodeGif(newFrameArray, `${folder}/${image}`)
+    }
+
+    public static upscaleGifs = async (sourceFolder: string, destFolder: string, constraint?: number, limit?: number) => {
+        const files = fs.readdirSync(sourceFolder)
+        if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
+        const fileMap = files.map((file) => `${sourceFolder}/${file}`)
+        if (!limit) limit = fileMap.length
+        for (let i = 0; i < limit; i++) {
+            try {
+                Waifu2x.upscaleGIF(fileMap[i], destFolder, constraint)
+            } catch (err) {
+                continue
+            }
+        }
+        return
     }
 }
 
