@@ -3,25 +3,25 @@ import * as fs from "fs"
 import * as path from "path"
 
 export type Waifu2xFormats = 
-    | ".bmp"
-    | ".dib"
-    | ".exr"
-    | ".hdr"
-    | ".jpe" 
-    | ".jpeg" 
-    | ".jpg" 
-    | ".pbm" 
-    | ".pgm" 
-    | ".pic" 
-    | ".png" 
-    | ".pnm" 
-    | ".ppm" 
-    | ".pxm" 
-    | ".ras" 
-    | ".sr" 
-    | ".tif" 
-    | ".tiff" 
-    | ".webp" 
+    | "bmp"
+    | "dib"
+    | "exr"
+    | "hdr"
+    | "jpe" 
+    | "jpeg" 
+    | "jpg" 
+    | "pbm" 
+    | "pgm" 
+    | "pic" 
+    | "png" 
+    | "pnm" 
+    | "ppm" 
+    | "pxm" 
+    | "ras" 
+    | "sr" 
+    | "tif" 
+    | "tiff" 
+    | "webp" 
 
 export interface Waifu2XOptions {
     noise?: 0 | 1 | 2 | 3
@@ -100,7 +100,7 @@ export default class Waifu2x {
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
         if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
-        if (options.recursionFormat) command += ` -f ${options.recursionFormat}`
+        if (options.recursionFormat) command += ` -f ${options.recursionFormat.toUpperCase()}`
         const output = execSync(command).toString()
         const files = fs.readdirSync(destFolder)
         Waifu2x.recursiveRename(destFolder, files, options.rename)
