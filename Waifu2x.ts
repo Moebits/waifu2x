@@ -188,6 +188,7 @@ export default class Waifu2x {
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
         if (!limit) limit = fileMap.length
         for (let i = 0; i < limit; i++) {
+            if (!fileMap[i]) return
             try {
                 Waifu2x.upscaleGIF(fileMap[i], destFolder, constraint)
             } catch (err) {
