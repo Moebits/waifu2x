@@ -84,8 +84,17 @@ export default class Waifu2x {
         if (!options.rename) options.rename = "2x"
         const {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
         if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
-        const program = "cd waifu2x && waifu2x-converter-cpp.exe"
-        let command = `${program} -i ../${source} -o ../${folder}/${image} -s`
+        const absolute = path.join(__dirname, "..", "waifu2x")
+        let local: string
+        if (__dirname.includes("node_modules")) {
+            local = path.join(__dirname, "../../../")
+        } else {
+            local = path.join(__dirname, "..")
+        }
+        const sourcePath = path.join(local, source)
+        const destPath = path.join(local, folder, image)
+        const program = `cd ${absolute} && waifu2x-converter-cpp.exe`
+        let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
@@ -97,9 +106,18 @@ export default class Waifu2x {
         if (!options) options = {}
         if (!options.rename) options.rename = "2x"
         if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
-        const program = "cd waifu2x && waifu2x-converter-cpp.exe"
         if (!options.recursion) options.recursion = 1
-        let command = `${program} -i ../${sourceFolder} -o ../${destFolder} -r ${options.recursion} -s`
+        const absolute = path.join(__dirname, "..", "waifu2x")
+        let local: string
+        if (__dirname.includes("node_modules")) {
+            local = path.join(__dirname, "../../../")
+        } else {
+            local = path.join(__dirname, "..")
+        }
+        const sourcePath = path.join(local, sourceFolder)
+        const destPath = path.join(local, destFolder)
+        const program = `cd ${absolute} && waifu2x-converter-cpp.exe`
+        let command = `${program} -i "${sourcePath}" -o "${destPath}" -r ${options.recursion} -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
