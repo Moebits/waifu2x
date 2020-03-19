@@ -118,7 +118,8 @@ export default class Waifu2x {
         }
         const sourcePath = path.join(local, sourceFolder)
         const destPath = path.join(local, destFolder)
-        const program = `cd ${absolute} && waifu2x-converter-cpp.exe`
+        let program = `cd ${absolute} && waifu2x-converter-cpp.exe`
+        if (options.callFromPath) program = "waifu2x-converter-cpp"
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -r ${options.recursion} -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
