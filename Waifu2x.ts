@@ -33,10 +33,10 @@ export interface Waifu2XOptions {
     recursion?: 0 | 1
     recursionFormat?: Waifu2xFormats
     rename?: string
+    callFromPath?: boolean
 }
 
 export default class Waifu2x {
-    private static readonly isWin = process.platform === "win32" ? true : false
     public static parseFilename = (source: string, dest: string, rename: string) => {
         let [image, folder] = ["", ""]
         if (!dest) {
@@ -94,7 +94,8 @@ export default class Waifu2x {
         }
         const sourcePath = path.join(local, source)
         const destPath = path.join(local, folder, image)
-        const program = Waifu2x.isWin ? `cd ${absolute}/ && waifu2x-converter-cpp.exe` : `waifu2x-converter-cpp`
+        let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
+        if (options.callFromPath) program = "waifu2x-converter-cpp"
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
