@@ -39,7 +39,7 @@ export interface Waifu2XOptions {
 }
 
 export default class Waifu2x {
-    public static parseFilename = (source: string, dest: string, rename: string) => {
+    private static parseFilename = (source: string, dest: string, rename: string) => {
         let [image, folder] = ["", ""]
         if (!dest) {
             image = null
@@ -135,7 +135,7 @@ export default class Waifu2x {
         return stdout
     }
 
-    public static encodeGif = async (files: string[], dest?: string) => {
+    public static encodeGIF = async (files: string[], dest?: string) => {
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
         return new Promise<void>((resolve) => {
@@ -171,7 +171,7 @@ export default class Waifu2x {
             })
     }
 
-    public static awaitStream = async (writeStream: stream.Writable) => {
+    private static awaitStream = async (writeStream: stream.Writable) => {
         return new Promise((resolve, reject) => {
             writeStream.on("finish", resolve)
             writeStream.on("error", reject)
@@ -203,10 +203,10 @@ export default class Waifu2x {
         await Waifu2x.upscaleImages(frameDest, upScaleDest)
         const scaledFrames = fs.readdirSync(upScaleDest)
         const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`)
-        await Waifu2x.encodeGif(newFrameArray, `${folder}/${image}`)
+        await Waifu2x.encodeGIF(newFrameArray, `${folder}/${image}`)
     }
 
-    public static upscaleGifs = async (sourceFolder: string, destFolder: string, constraint?: number, limit?: number) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, constraint?: number, limit?: number) => {
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)

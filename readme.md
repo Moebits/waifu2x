@@ -38,12 +38,12 @@ await waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x
 ```ts
 /*Grab some popcorn, because this is going to take centuries without a high-end gpu. The final parameter
 will constrain the gif to a certain number of frames.*/
-await waifu2x.upscaleGif("./images/gifs/megumin.gif", "./images/gifs", 30)
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", 30)
 
 /*Extremely impractical... unless you are converting GIFs with like 3 frames. The third parameter is the constraint
 for the upscaleGif() function, pass in Infinity to basically get all frames. The final parameter is the limit in the amount of
 gifs to get; both are optional.*/
-await waifu2x.upscaleGifs("./images/gifs", "./images/gifs/upscaled", Infinity, 10)
+await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", Infinity, 10)
 ```
 
 #### Waifu2xFormats
