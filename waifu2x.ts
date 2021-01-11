@@ -1,8 +1,10 @@
-import {execSync} from "child_process"
+import * as util from "util"
 import * as fs from "fs"
 import {imageSize} from "image-size"
 import * as path from "path"
 import * as stream from "stream"
+
+const exec = util.promisify(require("child_process").exec)
 
 export type Waifu2xFormats =
     | "bmp"
@@ -80,7 +82,7 @@ export default class Waifu2x {
         }
     }
 
-    public static upscaleImage = (source: string, dest?: string, options?: Waifu2XOptions) => {
+    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2XOptions) => {
         if (!options) options = {}
         if (!options.rename) options.rename = "2x"
         const {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
@@ -101,10 +103,11 @@ export default class Waifu2x {
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
         if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
-        return execSync(command).toString()
+        const {stdout} = await exec(command)
+        return stdout
     }
 
-    public static upscaleImages = (sourceFolder: string, destFolder: string, options?: Waifu2XOptions) => {
+    public static upscaleImages = async (sourceFolder: string, destFolder: string, options?: Waifu2XOptions) => {
         if (!options) options = {}
         if (!options.rename) options.rename = "2x"
         if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
@@ -126,16 +129,16 @@ export default class Waifu2x {
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
         if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
         if (options.recursionFormat) command += ` -f ${options.recursionFormat.toUpperCase()}`
-        const output = execSync(command).toString()
+        const {stdout} = await exec(command)
         const files = fs.readdirSync(destFolder)
         Waifu2x.recursiveRename(destFolder, files, options.rename)
-        return output
+        return stdout
     }
 
     public static encodeGif = async (files: string[], dest?: string) => {
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             const dimensions = imageSize(files[0])
             const gif = new GifEncoder(dimensions.width, dimensions.height)
             const pathIndex = files[0].search(/\d{8,}/)
@@ -197,7 +200,7 @@ export default class Waifu2x {
         await downloadFrames(frames)
         const upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
-        Waifu2x.upscaleImages(frameDest, upScaleDest)
+        await Waifu2x.upscaleImages(frameDest, upScaleDest)
         const scaledFrames = fs.readdirSync(upScaleDest)
         const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`)
         await Waifu2x.encodeGif(newFrameArray, `${folder}/${image}`)
@@ -211,7 +214,7 @@ export default class Waifu2x {
         for (let i = 0; i < limit; i++) {
             if (!fileMap[i]) return
             try {
-                Waifu2x.upscaleGIF(fileMap[i], destFolder, constraint)
+                await Waifu2x.upscaleGIF(fileMap[i], destFolder, constraint)
             } catch (err) {
                 continue
             }
