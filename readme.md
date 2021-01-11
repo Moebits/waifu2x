@@ -25,13 +25,13 @@ import waifu2x from "waifu2x"
 
 /*Upscale an image. If you specify a directory for the destination, the default name will be originalName2x. 
 You can optionally set the noise level (0/1/2/3), scale factor (default 2.0), pngCompression (0-9), and jpgWebpQuality (0-101).*/
-waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.png", {noise: 2, scale: 2.0})
+await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.png", {noise: 2, scale: 2.0})
 
 /*Recursively upscales all images in a directory. Set recursion to 1 to also upscale all images in all sub directories
 (this is the default), or to 0 to only scale images in that specific folder. You can also optionally specify the 
 recursionFormat, which will be the format for all the converted images, and the rename, which will be appended to the
 end of all the new filenames (default is 2x).*/
-waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
+await waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
 ```
 
 #### Upscaling Gifs
