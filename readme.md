@@ -32,18 +32,21 @@ await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.pn
 recursionFormat, which will be the format for all the converted images, and the rename, which will be appended to the
 end of all the new filenames (default is 2x).*/
 await waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
+
+/*There are some additional options, like using absolute paths or calling waifu2x-converter-cpp directly (to use your own installation)*/
+await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {absolutePath: true, callFromPath: true})
 ```
 
 #### Upscaling Gifs
 ```ts
-/*Grab some popcorn, because this is going to take centuries without a high-end gpu. The final parameter
+/*Grab some popcorn, because this is going to take centuries without a high-end gpu. The constraint parameter
 will constrain the gif to a certain number of frames.*/
-await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", 30)
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {constraint: 30})
 
-/*Extremely impractical... unless you are converting GIFs with like 3 frames. The third parameter is the constraint
-for the upscaleGif() function, pass in Infinity to basically get all frames. The final parameter is the limit in the amount of
-gifs to get; both are optional.*/
-await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", Infinity, 10)
+/*Extremely impractical... unless you are converting GIFs with like 3 frames. The constraint parameter is
+the same as the upscaleGif() function, pass in Infinity to basically get all frames. The limit parameter is the amount of
+gifs to process.*/
+await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {constraint: Infinity, limit: 10})
 ```
 
 #### Waifu2xFormats
@@ -70,16 +73,27 @@ export type Waifu2xFormats =
     | "webp" 
 ```
 
-#### Waifu2xOptions
+#### Waifu2XOptions
 ```ts
 export interface Waifu2XOptions {
     noise?: 0 | 1 | 2 | 3
-    scale?: number 
+    scale?: number
     pngCompression?: number
     jpgWebpQuality?: number
     recursion?: 0 | 1
     recursionFormat?: Waifu2xFormats
     rename?: string
+    callFromPath?: boolean
+    absolutePath?: boolean
+}
+```
+
+#### Waifu2XGIFOptions
+```ts
+export interface Waifu2XGIFOptions {
+    constraint?: number
+    limit?: number
+    absolutePath?: boolean
 }
 ```
 <details>

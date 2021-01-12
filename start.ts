@@ -5,6 +5,8 @@ import waifu2x from "./waifu2x"
 (async () => {
     const output = await waifu2x.upscaleImage("./images/jimp.png", "./images/upscale")
     console.log(output)
-    await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs", 3)
+    const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs", {constraint: 3})
+    console.log(result)
+    
     return
 })()
