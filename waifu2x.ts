@@ -27,7 +27,7 @@ export type Waifu2xFormats =
     | "tiff"
     | "webp"
 
-export interface Waifu2XOptions {
+export interface Waifu2xOptions {
     noise?: 0 | 1 | 2 | 3
     scale?: number
     pngCompression?: number
@@ -39,10 +39,9 @@ export interface Waifu2XOptions {
     absolutePath?: boolean
 }
 
-export interface Waifu2XGIFOptions {
+export interface Waifu2xGIFOptions extends Waifu2xOptions {
     constraint?: number
     limit?: number
-    absolutePath?: boolean
 }
 
 export default class Waifu2x {
@@ -72,7 +71,7 @@ export default class Waifu2x {
         return {folder, image}
     }
 
-    public static recursiveRename = (folder: string, fileNames: string[], rename: string) => {
+    private static recursiveRename = (folder: string, fileNames: string[], rename: string) => {
         if (folder.endsWith("/")) folder = folder.slice(0, -1)
         for (let i = 0; i < fileNames.length; i++) {
             const fullPath = `${folder}/${fileNames[i]}`
@@ -89,7 +88,7 @@ export default class Waifu2x {
         }
     }
 
-    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2XOptions) => {
+    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
         if (!options.rename) options.rename = "2x"
         let sourcePath = source
@@ -118,9 +117,9 @@ export default class Waifu2x {
         return stdout
     }
 
-    public static upscaleImages = async (sourceFolder: string, destFolder: string, options?: Waifu2XOptions) => {
+    public static upscaleImages = async (sourceFolder: string, destFolder: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
-        if (!options.rename) options.rename = "2x"
+        if (options.rename === undefined) options.rename = "2x"
         if (!options.recursion) options.recursion = 1
         if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
         let sourcePath = sourceFolder
@@ -150,7 +149,7 @@ export default class Waifu2x {
         return stdout
     }
 
-    public static encodeGIF = async (files: string[], dest: string) => {
+    private static encodeGIF = async (files: string[], delays: number[], dest: string) => {
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
         return new Promise<void>((resolve) => {
@@ -158,14 +157,14 @@ export default class Waifu2x {
             const gif = new GifEncoder(dimensions.width, dimensions.height)
             const file = fs.createWriteStream(dest)
             gif.pipe(file)
-            gif.setQuality(20)
-            gif.setDelay(0)
+            gif.setQuality(10)
             gif.setRepeat(0)
             gif.writeHeader()
             let counter = 0
 
             const addToGif = (frames: string[]) => {
                 getPixels(frames[counter], function(err: Error, pixels: any) {
+                    gif.setDelay(10 * delays[counter])
                     gif.addFrame(pixels.data)
                     gif.read()
                     if (counter >= frames.length - 1) {
@@ -190,7 +189,7 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2XGIFOptions) => {
+    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions) => {
         if (!options) options = {}
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all"})
@@ -212,12 +211,14 @@ export default class Waifu2x {
         let step = 1
         if (options.constraint && (options.constraint !== Infinity)) step = Math.ceil(frames.length / options.constraint)
         const frameArray: string[] = []
+        const delayArray: number[] = []
         async function downloadFrames(frames: any) {
             const promiseArray = []
             for (let i = 0; i < frames.length; i += step) {
                 const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.jpg`)
                 frames[i].getImage().pipe(writeStream)
                 frameArray.push(`${frameDest}/frame${i}.jpg`)
+                delayArray.push(frames[i].frameInfo.delay)
                 promiseArray.push(Waifu2x.awaitStream(writeStream))
             }
             return Promise.all(promiseArray)
@@ -225,16 +226,17 @@ export default class Waifu2x {
         await downloadFrames(frames)
         const upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
-        await Waifu2x.upscaleImages(frameDest, upScaleDest, {absolutePath: true})
+        options.absolutePath = true
+        options.rename = ""
+        await Waifu2x.upscaleImages(frameDest, upScaleDest, options)
         const scaledFrames = fs.readdirSync(upScaleDest)
-        const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`)
-        await Waifu2x.encodeGIF(newFrameArray, `${folder}/${image}`)
-        Waifu2x.removeDirectory(upScaleDest)
+        const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`).sort()
+        await Waifu2x.encodeGIF(newFrameArray, delayArray, `${folder}/${image}`)
         Waifu2x.removeDirectory(frameDest)
         return `${folder}/${image}`
     }
 
-    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2XGIFOptions) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -259,7 +261,7 @@ export default class Waifu2x {
             fs.readdirSync(dir).forEach(function(entry) {
                 const entryPath = path.join(dir, entry)
                 if (fs.lstatSync(entryPath).isDirectory()) {
-                    this.removeDirectory(entryPath)
+                    Waifu2x.removeDirectory(entryPath)
                 } else {
                     fs.unlinkSync(entryPath)
                 }

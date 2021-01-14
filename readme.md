@@ -73,9 +73,9 @@ export type Waifu2xFormats =
     | "webp" 
 ```
 
-#### Waifu2XOptions
+#### Waifu2xOptions
 ```ts
-export interface Waifu2XOptions {
+export interface Waifu2xOptions {
     noise?: 0 | 1 | 2 | 3
     scale?: number
     pngCompression?: number
@@ -88,12 +88,11 @@ export interface Waifu2XOptions {
 }
 ```
 
-#### Waifu2XGIFOptions
+#### Waifu2xGIFOptions
 ```ts
-export interface Waifu2XGIFOptions {
+export interface Waifu2xGIFOptions extends Waifu2xOptions {
     constraint?: number
     limit?: number
-    absolutePath?: boolean
 }
 ```
 <details>
