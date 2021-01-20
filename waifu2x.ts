@@ -40,7 +40,7 @@ export interface Waifu2xOptions {
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
-    constraint?: number
+    speed?: number
     limit?: number
 }
 
@@ -150,6 +150,8 @@ export default class Waifu2x {
     }
 
     private static encodeGIF = async (files: string[], delays: number[], dest: string) => {
+        console.log(files)
+        console.log(delays)
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
         return new Promise<void>((resolve) => {
@@ -208,10 +210,10 @@ export default class Waifu2x {
         }
         const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
         if (!fs.existsSync(frameDest)) fs.mkdirSync(frameDest, {recursive: true})
-        let step = 1
-        if (options.constraint && (options.constraint !== Infinity)) step = Math.ceil(frames.length / options.constraint)
+        const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
+        let step = Math.ceil(frames.length / constraint)
         const frameArray: string[] = []
-        const delayArray: number[] = []
+        let delayArray: number[] = []
         async function downloadFrames(frames: any) {
             const promiseArray = []
             for (let i = 0; i < frames.length; i += step) {
@@ -224,6 +226,7 @@ export default class Waifu2x {
             return Promise.all(promiseArray)
         }
         await downloadFrames(frames)
+        if (options.speed < 1) delayArray = delayArray.map((n) => n / options.speed)
         const upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.absolutePath = true

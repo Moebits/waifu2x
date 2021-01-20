@@ -39,14 +39,13 @@ await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png",
 
 #### Upscaling Gifs
 ```ts
-/*Grab some popcorn, because this is going to take centuries without a high-end gpu. The constraint parameter
-will constrain the gif to a certain number of frames.*/
-await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {constraint: 30})
+/*Grab some popcorn, because this is going to take centuries without a high-end gpu. The speed parameter
+changes the speed of the gif by removing frames or increasing the delay between frames.*/
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5})
 
-/*Extremely impractical... unless you are converting GIFs with like 3 frames. The constraint parameter is
-the same as the upscaleGif() function, pass in Infinity to basically get all frames. The limit parameter is the amount of
-gifs to process.*/
-await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {constraint: Infinity, limit: 10})
+/*Extremely impractical... unless you are converting GIFs with like 3 frames. The speed parameter is
+the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
+await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0, limit: 10})
 ```
 
 #### Waifu2xFormats
@@ -91,7 +90,7 @@ export interface Waifu2xOptions {
 #### Waifu2xGIFOptions
 ```ts
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
-    constraint?: number
+    speed?: number
     limit?: number
 }
 ```
