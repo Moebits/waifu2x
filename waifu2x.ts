@@ -41,6 +41,7 @@ export interface Waifu2xOptions {
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
+    reverse?: boolean
     limit?: number
 }
 
@@ -150,8 +151,6 @@ export default class Waifu2x {
     }
 
     private static encodeGIF = async (files: string[], delays: number[], dest: string) => {
-        console.log(files)
-        console.log(delays)
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
         return new Promise<void>((resolve) => {
@@ -233,7 +232,11 @@ export default class Waifu2x {
         options.rename = ""
         await Waifu2x.upscaleImages(frameDest, upScaleDest, options)
         const scaledFrames = fs.readdirSync(upScaleDest)
-        const newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`).sort()
+        let newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`).sort()
+        if (options.reverse) {
+            newFrameArray = newFrameArray.reverse()
+            delayArray = delayArray.reverse()
+        }
         await Waifu2x.encodeGIF(newFrameArray, delayArray, `${folder}/${image}`)
         Waifu2x.removeDirectory(frameDest)
         return `${folder}/${image}`

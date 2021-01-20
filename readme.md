@@ -40,8 +40,9 @@ await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png",
 #### Upscaling Gifs
 ```ts
 /*Grab some popcorn, because this is going to take centuries without a high-end gpu. The speed parameter
-changes the speed of the gif by removing frames or increasing the delay between frames.*/
-await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5})
+changes the speed of the gif by removing frames or increasing the delay between frames. The reverse parameter
+reverses the frames if true.*/
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5, reverse: true})
 
 /*Extremely impractical... unless you are converting GIFs with like 3 frames. The speed parameter is
 the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
@@ -91,6 +92,7 @@ export interface Waifu2xOptions {
 ```ts
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
+    reverse?: boolean
     limit?: number
 }
 ```
