@@ -190,7 +190,7 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void) => {
+    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all"})
@@ -235,7 +235,8 @@ export default class Waifu2x {
         for (let i = 0; i < frameArray.length; i++) {
             await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
             scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-            progress(i + 1, frameArray.length)
+            const stop = progress(i + 1, frameArray.length)
+            if (stop) break
         }
         if (options.reverse) {
             scaledFrames = scaledFrames.reverse()
@@ -246,7 +247,7 @@ export default class Waifu2x {
         return `${folder}/${image}`
     }
 
-    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void, progress?: (current?: number, total?: number) => void) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -257,8 +258,9 @@ export default class Waifu2x {
             if (!fileMap[i]) return
             try {
                 const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
-                totalProgress(i + 1, options.limit)
+                const stop = totalProgress(i + 1, options.limit)
                 retArray.push(ret)
+                if (stop) break
             } catch (err) {
                 continue
             }

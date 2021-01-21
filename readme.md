@@ -48,9 +48,10 @@ await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1
 the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
 await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0, limit: 10}, totalProgress, progress)
 
-/*You can pass callback functions to both to track progress.*/
+/*You can pass callback functions to both to track progress. You can also return true in order to stop early.*/
 let progress = (current: number, total: number) => {
   console.log(`Current Frame: ${current} Total Frames: ${total}`)
+  if (current === 5) return true
 }
 
 let totalProgress = (current: number, total: number) => {
