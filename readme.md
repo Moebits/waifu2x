@@ -42,11 +42,20 @@ await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png",
 /*Grab some popcorn, because this is going to take centuries without a high-end gpu. The speed parameter
 changes the speed of the gif by removing frames or increasing the delay between frames. The reverse parameter
 reverses the frames if true.*/
-await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5, reverse: true})
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5, reverse: true}, progress)
 
 /*Extremely impractical... unless you are converting GIFs with like 3 frames. The speed parameter is
 the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
-await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0, limit: 10})
+await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0, limit: 10}, totalProgress, progress)
+
+/*You can pass callback functions to both to track progress.*/
+let progress = (current: number, total: number) => {
+  console.log(`Current Frame: ${current} Total Frames: ${total}`)
+}
+
+let totalProgress = (current: number, total: number) => {
+  console.log(`Current GIF: ${current} Total GIFs: ${total}`)
+}
 ```
 
 #### Waifu2xFormats

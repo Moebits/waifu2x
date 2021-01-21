@@ -190,7 +190,7 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions) => {
+    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void) => {
         if (!options) options = {}
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all"})
@@ -208,7 +208,8 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
-        if (!fs.existsSync(frameDest)) fs.mkdirSync(frameDest, {recursive: true})
+        if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
+        fs.mkdirSync(frameDest, {recursive: true})
         const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
         let step = Math.ceil(frames.length / constraint)
         const frameArray: string[] = []
@@ -230,19 +231,22 @@ export default class Waifu2x {
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.absolutePath = true
         options.rename = ""
-        await Waifu2x.upscaleImages(frameDest, upScaleDest, options)
-        const scaledFrames = fs.readdirSync(upScaleDest)
-        let newFrameArray = scaledFrames.map((f) => `${upScaleDest}/${f}`).sort()
+        let scaledFrames: string[] = []
+        for (let i = 0; i < frameArray.length; i++) {
+            await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
+            scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
+            progress(i + 1, frameArray.length)
+        }
         if (options.reverse) {
-            newFrameArray = newFrameArray.reverse()
+            scaledFrames = scaledFrames.reverse()
             delayArray = delayArray.reverse()
         }
-        await Waifu2x.encodeGIF(newFrameArray, delayArray, `${folder}/${image}`)
+        await Waifu2x.encodeGIF(scaledFrames, delayArray, `${folder}/${image}`)
         Waifu2x.removeDirectory(frameDest)
         return `${folder}/${image}`
     }
 
-    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void, progress?: (current?: number, total?: number) => void) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -252,7 +256,8 @@ export default class Waifu2x {
         for (let i = 0; i < options.limit; i++) {
             if (!fileMap[i]) return
             try {
-                const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options)
+                const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
+                totalProgress(i + 1, options.limit)
                 retArray.push(ret)
             } catch (err) {
                 continue
