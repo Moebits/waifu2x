@@ -30,8 +30,15 @@ export type Waifu2xFormats =
 export interface Waifu2xOptions {
     noise?: 0 | 1 | 2 | 3
     scale?: number
+    mode?: "noise" | "scale" | "noise-scale"
+    blockSize?: number
     pngCompression?: number
     jpgWebpQuality?: number
+    disableGPU?: boolean
+    forceOpenCL?: boolean
+    processor?: number
+    threads?: number
+    modelDir?: string
     recursion?: 0 | 1
     recursionFormat?: Waifu2xFormats
     rename?: string
@@ -89,20 +96,25 @@ export default class Waifu2x {
         }
     }
 
+    public static processorList = async (options?: {callFromPath?: boolean}) => {
+        if (!options) options = {}
+        const absolute = path.join(__dirname, "../waifu2x")
+        let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
+        if (options.callFromPath) program = "waifu2x-converter-cpp"
+        let command = `${program} -l`
+        const {stdout} = await exec(command)
+        return stdout.split("\n").map((s: string) => s.trim()).join("\n") as string
+    }
+
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
         if (!options.rename) options.rename = "2x"
         let sourcePath = source
         let destPath = dest
+        let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
         if (!options.absolutePath) {
             const {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
             if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
-            let local: string
-            if (__dirname.includes("node_modules")) {
-                local = path.join(__dirname, "../../../")
-            } else {
-                local = path.join(__dirname, "..")
-            }
             sourcePath = path.join(local, source)
             destPath = path.join(local, folder, image)
         }
@@ -112,10 +124,21 @@ export default class Waifu2x {
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
+        if (options.mode) command += ` -m ${options.mode}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
         if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
+        if (options.blockSize) command += ` --block-size ${options.blockSize}`
+        if (options.disableGPU) command += ` --disable-gpu`
+        if (options.forceOpenCL) command += ` --force-OpenCL`
+        if (options.processor) command += ` -p ${options.processor}`
+        if (options.threads) command += ` -j ${options.threads}`
+        if (options.modelDir) {
+            if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
+            if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
+            command += ` --model-dir ${options.modelDir}`
+        }
         const {stdout} = await exec(command)
-        return stdout
+        return stdout as string
     }
 
     public static upscaleImages = async (sourceFolder: string, destFolder: string, options?: Waifu2xOptions) => {
@@ -125,13 +148,8 @@ export default class Waifu2x {
         if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
         let sourcePath = sourceFolder
         let destPath = destFolder
+        let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
         if (!options.absolutePath) {
-            let local: string
-            if (__dirname.includes("node_modules")) {
-                local = path.join(__dirname, "../../../")
-            } else {
-                local = path.join(__dirname, "..")
-            }
             sourcePath = path.join(local, sourceFolder)
             destPath = path.join(local, destFolder)
         }
@@ -141,13 +159,24 @@ export default class Waifu2x {
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -r ${options.recursion} -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
+        if (options.mode) command += ` -m ${options.mode}`
         if (options.pngCompression) command += ` -c ${options.pngCompression}`
         if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
+        if (options.blockSize) command += ` --block-size ${options.blockSize}`
+        if (options.disableGPU) command += ` --disable-gpu`
+        if (options.forceOpenCL) command += ` --force-OpenCL`
+        if (options.processor) command += ` -p ${options.processor}`
+        if (options.threads) command += ` -j ${options.threads}`
         if (options.recursionFormat) command += ` -f ${options.recursionFormat.toUpperCase()}`
+        if (options.modelDir) {
+            if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
+            if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
+            command += ` --model-dir ${options.modelDir}`
+        }
         const {stdout} = await exec(command)
         const files = fs.readdirSync(destFolder)
         Waifu2x.recursiveRename(destFolder, files, options.rename)
-        return stdout
+        return stdout as string
     }
 
     private static encodeGIF = async (files: string[], delays: number[], dest: string) => {
@@ -199,12 +228,7 @@ export default class Waifu2x {
             folder = dest
             if (folder.endsWith("/")) folder = folder.slice(0, -1)
         } else {
-            let local: string
-            if (__dirname.includes("node_modules")) {
-                local = path.join(__dirname, "../../../")
-            } else {
-                local = path.join(__dirname, "..")
-            }
+            let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
         }
         const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
@@ -253,7 +277,7 @@ export default class Waifu2x {
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
         if (!options.limit) options.limit = fileMap.length
-        const retArray = []
+        const retArray: string[] = []
         for (let i = 0; i < options.limit; i++) {
             if (!fileMap[i]) return
             try {

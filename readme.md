@@ -24,7 +24,7 @@ npm install waifu2x
 import waifu2x from "waifu2x"
 
 /*Upscale an image. If you specify a directory for the destination, the default name will be originalName2x. 
-You can optionally set the noise level (0/1/2/3), scale factor (default 2.0), pngCompression (0-9), and jpgWebpQuality (0-101).*/
+You can optionally set the noise level (0/1/2/3), scale factor (default 2.0), mode (noise/scale/noise-scale), pngCompression (0-9), and jpgWebpQuality (0-101).*/
 await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.png", {noise: 2, scale: 2.0})
 
 /*Recursively upscales all images in a directory. Set recursion to 1 to also upscale all images in all sub directories
@@ -33,7 +33,7 @@ recursionFormat, which will be the format for all the converted images, and the 
 end of all the new filenames (default is 2x).*/
 await waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
 
-/*There are some additional options, like using absolute paths or calling waifu2x-converter-cpp directly (to use your own installation)*/
+/*There are some additional options, like using absolute paths or calling waifu2x-converter-cpp directly (to use your own installation).*/
 await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {absolutePath: true, callFromPath: true})
 ```
 
@@ -88,8 +88,15 @@ export type Waifu2xFormats =
 export interface Waifu2xOptions {
     noise?: 0 | 1 | 2 | 3
     scale?: number
+    mode?: "noise" | "scale" | "noise-scale"
+    blockSize?: number
     pngCompression?: number
     jpgWebpQuality?: number
+    disableGPU?: boolean
+    forceOpenCL?: boolean
+    processor?: number
+    threads?: number
+    modelDir?: string
     recursion?: 0 | 1
     recursionFormat?: Waifu2xFormats
     rename?: string
