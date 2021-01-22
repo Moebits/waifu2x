@@ -135,7 +135,7 @@ export default class Waifu2x {
         if (options.modelDir) {
             if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
-            command += ` --model-dir ${options.modelDir}`
+            command += ` --model-dir "${options.modelDir}"`
         }
         const {stdout} = await exec(command)
         return stdout as string
@@ -171,7 +171,7 @@ export default class Waifu2x {
         if (options.modelDir) {
             if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
-            command += ` --model-dir ${options.modelDir}`
+            command += ` --model-dir "${options.modelDir}"`
         }
         const {stdout} = await exec(command)
         const files = fs.readdirSync(destFolder)
