@@ -1,4 +1,3 @@
-import * as fs from "fs"
 import waifu2x from "./waifu2x"
 
 (async () => {

@@ -108,7 +108,7 @@ export default class Waifu2x {
 
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
-        if (!options.rename) options.rename = "2x"
+        if (options.rename === undefined) options.rename = "2x"
         let sourcePath = source
         let destPath = dest
         let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -222,7 +222,7 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         const gifFrames = require("gif-frames")
-        const frames = await gifFrames({url: source, frames: "all"})
+        const frames = await gifFrames({url: source, frames: "all", cumulative: true})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (options.absolutePath) {
             folder = dest
