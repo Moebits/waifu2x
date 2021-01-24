@@ -63,7 +63,7 @@ let totalProgress = (current: number, total: number) => {
 #### Upscaling Videos
 ```ts
 /*Now you are going to be waiting for all of eternity. The time this takes is heavily dependent on the framerate
-(default is 24). You can also set the quality (0-51), where lower is better, and speed and reverse as with the GIF.
+(default is original). You can also set the quality (0-51), where lower is better, and speed and reverse as with the GIF.
 Setting scale to 1 will skip the upscaling entirely.*/
 await waifu2x.upscaleVideo("./images/videos/gab.mp4", "./images/videos/gab2x.mp4", {framerate: 24, quality: 16, speed: 1.5}, progress)
 
@@ -144,6 +144,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
+    ffprobePath?: string
 }
 ```
 <details>

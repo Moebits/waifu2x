@@ -60,6 +60,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
+    ffprobePath?: string
 }
 
 export default class Waifu2x {
@@ -78,13 +79,7 @@ export default class Waifu2x {
         if (!folder) folder = "./"
         if (folder.endsWith("/")) folder = folder.slice(0, -1)
         if (!image) {
-            if (source.slice(-3).startsWith(".")) {
-                image = `${path.basename(source).slice(0, -3)}${rename}${source.slice(-3)}`
-            } else if (source.slice(-4).startsWith(".")) {
-                image = `${path.basename(source).slice(0, -4)}${rename}${source.slice(-4)}`
-            } else {
-                image = `${path.basename(source).slice(0, -5)}${rename}${source.slice(-5)}`
-            }
+            image = `${path.basename(source, path.extname(source))}${rename}${path.extname(source)}`
         }
         return {folder, image}
     }
@@ -235,13 +230,13 @@ export default class Waifu2x {
         const frames = await gifFrames({url: source, frames: "all", cumulative: true})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (path.isAbsolute(source) && path.isAbsolute(dest)) {
-            folder = path.dirname(dest)
+            folder = dest.slice(0, -5).includes(".") ? path.dirname(dest) : dest
             if (folder.endsWith("/")) folder = folder.slice(0, -1)
         } else {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
         }
-        const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
+        const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
         if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
         fs.mkdirSync(frameDest, {recursive: true})
         const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
@@ -308,19 +303,27 @@ export default class Waifu2x {
     public static upscaleVideo = async (source: string, dest: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
+        if (options.ffprobePath) ffmpeg.setFfprobePath(options.ffprobePath) 
+        if (!options.framerate) {
+            options.framerate = await new Promise<number>((resolve) => {
+                ffmpeg.ffprobe(source, function(err: any, metadata: any) {
+                    resolve(parseInt(metadata.streams[0].r_frame_rate))
+                })
+            })
+        }
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (path.isAbsolute(source) && path.isAbsolute(dest)) {
-            folder = path.dirname(dest)
+            folder = dest.slice(0, -5).includes(".") ? path.dirname(dest) : dest
             if (folder.endsWith("/")) folder = folder.slice(0, -1)
         } else {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
             source = path.join(local, source)
         }
-        const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
+        const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
         if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
         fs.mkdirSync(frameDest, {recursive: true})
-        let framerate = options.framerate ? ["-r", `${options.framerate}`] : ["-r", "24"]
+        let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
         await new Promise<void>((resolve) => {
@@ -331,8 +334,8 @@ export default class Waifu2x {
         let audio = `${frameDest}/audio.mp3`
         await new Promise<void>((resolve, reject) => {
             ffmpeg(source).save(audio)
-            .on("error", () => reject())
             .on("end", () => resolve())
+            .on("error", () => reject())
         }).catch(() => null)
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
@@ -351,13 +354,27 @@ export default class Waifu2x {
             upScaleDest = frameDest
         }
         if (fs.existsSync(audio)) {
-            let filter = options.speed ? ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"] : []
-            if (options.reverse && !filter[0]) filter = ["-vf", "reverse", "-af", "areverse"]
-            await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...filter])
-                .save(`${folder}/${image}`)
-                .on("end", () => resolve())
-            })
+            let filter: string[] = []
+            if (options.speed) {
+                filter = ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
+                await new Promise<void>((resolve) => {
+                    ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf])
+                    .save(`${upScaleDest}/${image}`)
+                    .on("end", () => resolve())
+                })
+                await new Promise<void>((resolve) => {
+                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                    .save(`${folder}/${image}`)
+                    .on("end", () => resolve())
+                })
+            } else {
+                if (options.reverse) filter = ["-vf", "reverse", "-af", "areverse"]
+                await new Promise<void>((resolve) => {
+                    ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                    .save(`${folder}/${image}`)
+                    .on("end", () => resolve())
+                })
+            }
         } else {
             let filter = options.speed ? ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"] : []
             if (options.reverse && !filter[0]) filter = ["-vf", "reverse"]
