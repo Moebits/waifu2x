@@ -342,7 +342,7 @@ export default class Waifu2x {
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             for (let i = 0; i < frameArray.length; i++) {
-                if (path.extname(frameArray[i]) !== "png") continue
+                if (path.extname(frameArray[i]) !== ".png") continue
                 await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
                 scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
                 const stop = progress(i + 1, frameArray.length)
