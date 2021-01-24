@@ -1,6 +1,6 @@
 {
   "name": "waifu2x",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "2x upscaling of images with waifu2x",
   "main": "dist/waifu2x.js",
   "types": "dist/waifu2x.d.ts",

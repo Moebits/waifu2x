@@ -4,7 +4,6 @@ import {imageSize} from "image-size"
 import * as ffmpeg from "fluent-ffmpeg"
 import * as path from "path"
 import * as stream from "stream"
-import { rejects } from "assert"
 
 const exec = util.promisify(require("child_process").exec)
 
@@ -48,6 +47,7 @@ export interface Waifu2xOptions {
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
+    quality?: number
     speed?: number
     reverse?: boolean
     limit?: number
@@ -184,15 +184,16 @@ export default class Waifu2x {
         return stdout as string
     }
 
-    private static encodeGIF = async (files: string[], delays: number[], dest: string) => {
+    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number) => {
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
+        if (!quality) quality = 10
         return new Promise<void>((resolve) => {
             const dimensions = imageSize(files[0])
             const gif = new GifEncoder(dimensions.width, dimensions.height)
             const file = fs.createWriteStream(dest)
             gif.pipe(file)
-            gif.setQuality(10)
+            gif.setQuality(quality)
             gif.setRepeat(0)
             gif.writeHeader()
             let counter = 0
@@ -274,7 +275,7 @@ export default class Waifu2x {
             scaledFrames = scaledFrames.reverse()
             delayArray = delayArray.reverse()
         }
-        await Waifu2x.encodeGIF(scaledFrames, delayArray, `${folder}/${image}`)
+        await Waifu2x.encodeGIF(scaledFrames, delayArray, `${folder}/${image}`, options.quality)
         Waifu2x.removeDirectory(frameDest)
         return `${folder}/${image}`
     }
