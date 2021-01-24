@@ -60,6 +60,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     limit?: number
+    ffmpegPath?: string
 }
 
 export default class Waifu2x {
@@ -293,7 +294,7 @@ export default class Waifu2x {
         if (!options.limit) options.limit = fileMap.length
         const retArray: string[] = []
         for (let i = 0; i < options.limit; i++) {
-            if (!fileMap[i]) return
+            if (!fileMap[i]) break
             try {
                 const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
                 const stop = totalProgress(i + 1, options.limit)
@@ -308,6 +309,7 @@ export default class Waifu2x {
 
     public static upscaleVideo = async (source: string, dest: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
+        if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (options.absolutePath) {
             folder = dest
@@ -338,11 +340,10 @@ export default class Waifu2x {
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.absolutePath = true
         options.rename = ""
-        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png").sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             for (let i = 0; i < frameArray.length; i++) {
-                if (path.extname(frameArray[i]) !== ".png") continue
                 await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
                 scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
                 const stop = progress(i + 1, frameArray.length)
@@ -381,7 +382,7 @@ export default class Waifu2x {
         if (!options.limit) options.limit = fileMap.length
         const retArray: string[] = []
         for (let i = 0; i < options.limit; i++) {
-            if (!fileMap[i]) return
+            if (!fileMap[i]) break
             try {
                 const ret = await Waifu2x.upscaleVideo(fileMap[i], destFolder, options, progress)
                 const stop = totalProgress(i + 1, options.limit)
