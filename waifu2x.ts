@@ -45,7 +45,6 @@ export interface Waifu2xOptions {
     recursionFormat?: Waifu2xFormats
     rename?: string
     callFromPath?: boolean
-    absolutePath?: boolean
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -117,13 +116,13 @@ export default class Waifu2x {
         return stdout.split("\n").map((s: string) => s.trim()).join("\n") as string
     }
 
-    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
+    public static upscaleImage = async (source: string, dest: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
         if (options.rename === undefined) options.rename = "2x"
         let sourcePath = source
         let destPath = dest
         let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
-        if (!options.absolutePath) {
+        if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             const {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
             if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
             sourcePath = path.join(local, source)
@@ -160,7 +159,7 @@ export default class Waifu2x {
         let sourcePath = sourceFolder
         let destPath = destFolder
         let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
-        if (!options.absolutePath) {
+        if (!path.isAbsolute(sourceFolder) && !path.isAbsolute(destFolder)) {
             sourcePath = path.join(local, sourceFolder)
             destPath = path.join(local, destFolder)
         }
@@ -235,8 +234,8 @@ export default class Waifu2x {
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all", cumulative: true})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
-        if (options.absolutePath) {
-            folder = dest
+        if (path.isAbsolute(source) && path.isAbsolute(dest)) {
+            folder = path.dirname(dest)
             if (folder.endsWith("/")) folder = folder.slice(0, -1)
         } else {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -264,7 +263,6 @@ export default class Waifu2x {
         if (options.speed < 1) delayArray = delayArray.map((n) => n / options.speed)
         const upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
-        options.absolutePath = true
         options.rename = ""
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
@@ -311,8 +309,8 @@ export default class Waifu2x {
         if (!options) options = {}
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
-        if (options.absolutePath) {
-            folder = dest
+        if (path.isAbsolute(source) && path.isAbsolute(dest)) {
+            folder = path.dirname(dest)
             if (folder.endsWith("/")) folder = folder.slice(0, -1)
         } else {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -335,10 +333,9 @@ export default class Waifu2x {
             ffmpeg(source).save(audio)
             .on("error", () => reject())
             .on("end", () => resolve())
-        }).catch(() => audio = "")
+        }).catch(() => null)
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
-        options.absolutePath = true
         options.rename = ""
         let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png").sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames: string[] = []
@@ -353,7 +350,7 @@ export default class Waifu2x {
             scaledFrames = frameArray
             upScaleDest = frameDest
         }
-        if (audio) {
+        if (fs.existsSync(audio)) {
             let filter = options.speed ? ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"] : []
             if (options.reverse && !filter[0]) filter = ["-vf", "reverse", "-af", "areverse"]
             await new Promise<void>((resolve) => {
