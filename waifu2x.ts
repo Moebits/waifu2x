@@ -1,8 +1,10 @@
 import * as util from "util"
 import * as fs from "fs"
 import {imageSize} from "image-size"
+import * as ffmpeg from "fluent-ffmpeg"
 import * as path from "path"
 import * as stream from "stream"
+import { rejects } from "assert"
 
 const exec = util.promisify(require("child_process").exec)
 
@@ -47,6 +49,14 @@ export interface Waifu2xOptions {
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
+    speed?: number
+    reverse?: boolean
+    limit?: number
+}
+
+export interface Waifu2xVideoOptions extends Waifu2xOptions {
+    framerate?: number
+    quality?: number
     speed?: number
     reverse?: boolean
     limit?: number
@@ -256,11 +266,15 @@ export default class Waifu2x {
         options.absolutePath = true
         options.rename = ""
         let scaledFrames: string[] = []
-        for (let i = 0; i < frameArray.length; i++) {
-            await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
-            scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-            const stop = progress(i + 1, frameArray.length)
-            if (stop) break
+        if (options.scale !== 1) {
+            for (let i = 0; i < frameArray.length; i++) {
+                await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
+                scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
+                const stop = progress(i + 1, frameArray.length)
+                if (stop) break
+            }
+        } else {
+            scaledFrames = frameArray
         }
         if (options.reverse) {
             scaledFrames = scaledFrames.reverse()
@@ -282,6 +296,94 @@ export default class Waifu2x {
             if (!fileMap[i]) return
             try {
                 const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
+                const stop = totalProgress(i + 1, options.limit)
+                retArray.push(ret)
+                if (stop) break
+            } catch (err) {
+                continue
+            }
+        }
+        return retArray
+    }
+
+    public static upscaleVideo = async (source: string, dest: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
+        if (!options) options = {}
+        let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
+        if (options.absolutePath) {
+            folder = dest
+            if (folder.endsWith("/")) folder = folder.slice(0, -1)
+        } else {
+            let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
+            folder = path.join(local, folder)
+            source = path.join(local, source)
+        }
+        const frameDest = `${folder}/${path.basename(source.slice(0, -4))}Frames`
+        if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
+        fs.mkdirSync(frameDest, {recursive: true})
+        let framerate = options.framerate ? ["-r", `${options.framerate}`] : ["-r", "24"]
+        let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
+        let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+        await new Promise<void>((resolve) => {
+            ffmpeg(source).outputOptions([...framerate])
+            .save(`${frameDest}/frame%d.png`)
+            .on("end", () => resolve())
+        })
+        let audio = `${frameDest}/audio.mp3`
+        await new Promise<void>((resolve, reject) => {
+            ffmpeg(source).save(audio)
+            .on("error", () => reject())
+            .on("end", () => resolve())
+        }).catch(() => audio = "")
+        let upScaleDest = `${frameDest}/upscaled`
+        if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
+        options.absolutePath = true
+        options.rename = ""
+        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        let scaledFrames: string[] = []
+        if (options.scale !== 1) {
+            for (let i = 0; i < frameArray.length; i++) {
+                if (path.extname(frameArray[i]) !== "png") continue
+                await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
+                scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
+                const stop = progress(i + 1, frameArray.length)
+                if (stop) break
+            }
+        } else {
+            scaledFrames = frameArray
+            upScaleDest = frameDest
+        }
+        if (audio) {
+            let filter = options.speed ? ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"] : []
+            if (options.reverse && !filter[0]) filter = ["-vf", "reverse", "-af", "areverse"]
+            await new Promise<void>((resolve) => {
+                ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                .save(`${folder}/${image}`)
+                .on("end", () => resolve())
+            })
+        } else {
+            let filter = options.speed ? ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"] : []
+            if (options.reverse && !filter[0]) filter = ["-vf", "reverse"]
+            await new Promise<void>((resolve) => {
+                ffmpeg(`${upScaleDest}/frame%d.png`).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                .save(`${folder}/${image}`)
+                .on("end", () => resolve())
+            })
+        }
+        Waifu2x.removeDirectory(frameDest)
+        return `${folder}/${image}`
+    }
+
+    public static upscaleVideos = async (sourceFolder: string, destFolder: string, options?: Waifu2xVideoOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
+        if (!options) options = {}
+        const files = fs.readdirSync(sourceFolder)
+        if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
+        const fileMap = files.map((file) => `${sourceFolder}/${file}`)
+        if (!options.limit) options.limit = fileMap.length
+        const retArray: string[] = []
+        for (let i = 0; i < options.limit; i++) {
+            if (!fileMap[i]) return
+            try {
+                const ret = await Waifu2x.upscaleVideo(fileMap[i], destFolder, options, progress)
                 const stop = totalProgress(i + 1, options.limit)
                 retArray.push(ret)
                 if (stop) break

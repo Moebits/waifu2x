@@ -8,7 +8,8 @@
 </div>
 
 ### About
-This package uses the pre-built Windows x64 binaries from [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp) in order to upscale anime-styled images with node.js.
+This package uses the pre-built Windows x64 binaries from [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp) in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
+to have [**ffmpeg**](https://ffmpeg.org/) installed.
 
 ### Insall
 ```ts
@@ -41,8 +42,8 @@ await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png",
 ```ts
 /*Grab some popcorn, because this is going to take centuries without a high-end gpu. The speed parameter
 changes the speed of the gif by removing frames or increasing the delay between frames. The reverse parameter
-reverses the frames if true.*/
-await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs", {speed: 1.5, reverse: true}, progress)
+reverses the frames if true. Setting scale to 1 skips the upscaling entirely.*/
+await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs/megumin2x.gif", {speed: 1.5, reverse: true}, progress)
 
 /*Extremely impractical... unless you are converting GIFs with like 3 frames. The speed parameter is
 the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
@@ -56,6 +57,27 @@ let progress = (current: number, total: number) => {
 
 let totalProgress = (current: number, total: number) => {
   console.log(`Current GIF: ${current} Total GIFs: ${total}`)
+}
+```
+
+#### Upscaling Videos
+```ts
+/*Now you are going to be waiting for all of eternity. The time this takes is heavily dependent on the framerate
+(default is 24). You can also set the quality (0-51), where lower is better, and speed and reverse as with the GIF.
+Setting scale to 1 will skip the upscaling entirely.*/
+await waifu2x.upscaleVideo("./images/videos/gab.mp4", "./images/videos/gab2x.mp4", {framerate: 24, quality: 16, speed: 1.5}, progress)
+
+/*Well, this is really not a good idea... The limit parameter is the amount of videos to process.*/
+await waifu2x.upscaleVideos("./images/videos", "./images/videos/upscaled", {reverse: true, limit: 10}, totalProgress, progress)
+
+/*You can track progress the same as with GIFs. Returning true stops early.*/
+let progress = (current: number, total: number) => {
+  console.log(`Current Frame: ${current} Total Frames: ${total}`)
+  if (current === 30) return true
+}
+
+let totalProgress = (current: number, total: number) => {
+  console.log(`Current Video: ${current} Total Videos: ${total}`)
 }
 ```
 
@@ -108,6 +130,17 @@ export interface Waifu2xOptions {
 #### Waifu2xGIFOptions
 ```ts
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
+    speed?: number
+    reverse?: boolean
+    limit?: number
+}
+```
+
+#### Waifu2xVideoOptions
+```ts
+export interface Waifu2xVideoOptions extends Waifu2xOptions {
+    framerate?: number
+    quality?: number
     speed?: number
     reverse?: boolean
     limit?: number
