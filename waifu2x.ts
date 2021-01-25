@@ -308,7 +308,7 @@ export default class Waifu2x {
         if (!options.framerate) {
             options.framerate = await new Promise<number>((resolve) => {
                 ffmpeg.ffprobe(source, function(err: any, metadata: any) {
-                    resolve(parseInt(metadata.streams[0].r_frame_rate))
+                    resolve(Number(metadata.streams[0].r_frame_rate.split("/").reduce((acc: string, curr: string) => Number(acc) / Number(curr))))
                 })
             })
         }
