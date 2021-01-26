@@ -301,8 +301,7 @@ export default class Waifu2x {
     }
 
     private static parseFramerate = async (file: string, ffmpegPath?: string) => {
-        let command = `ffmpeg -i ${file}`
-        if (ffmpegPath) command = `cd ${ffmpegPath} && ${command}`
+        let command = `${ffmpegPath ? ffmpegPath : "ffmpeg"} -i ${file}`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
         return Number(str.match(/[0-9]* (?=fps,)/)[0])
     }
