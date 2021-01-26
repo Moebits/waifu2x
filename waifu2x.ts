@@ -232,10 +232,7 @@ export default class Waifu2x {
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all", cumulative: true})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
-        if (path.isAbsolute(source) && path.isAbsolute(dest)) {
-            folder = dest.slice(0, -5).includes(".") ? path.dirname(dest) : dest
-            if (folder.endsWith("/")) folder = folder.slice(0, -1)
-        } else {
+        if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
         }
@@ -315,10 +312,7 @@ export default class Waifu2x {
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
-        if (path.isAbsolute(source) && path.isAbsolute(dest)) {
-            folder = dest.slice(0, -5).includes(".") ? path.dirname(dest) : dest
-            if (folder.endsWith("/")) folder = folder.slice(0, -1)
-        } else {
+        if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
             source = path.join(local, source)
