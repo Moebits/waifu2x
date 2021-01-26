@@ -8,7 +8,7 @@ import waifu2x from "./waifu2x"
     }
     //const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif", {speed: 1.0, quality: 1}, progress)
     //console.log(result)
-    const output = await waifu2x.upscaleVideo("./images/videos/vid.mp4", "./images/videos/vid2.mp4", {speed: 0.5, scale: 1}, progress)
+    const output = await waifu2x.upscaleVideo("./images/videos/vid.mp4", "./images/videos", {scale: 1})
     console.log(output)
     return
 })()

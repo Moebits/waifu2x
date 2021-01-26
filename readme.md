@@ -145,7 +145,6 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
-    ffprobePath?: string
 }
 ```
 <details>

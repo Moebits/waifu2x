@@ -60,7 +60,6 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
-    ffprobePath?: string
 }
 
 export default class Waifu2x {
@@ -111,8 +110,9 @@ export default class Waifu2x {
         return stdout.split("\n").map((s: string) => s.trim()).join("\n") as string
     }
 
-    public static upscaleImage = async (source: string, dest: string, options?: Waifu2xOptions) => {
+    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
+        if (!dest) dest = "./"
         if (options.rename === undefined) options.rename = "2x"
         let sourcePath = source
         let destPath = dest
@@ -146,8 +146,9 @@ export default class Waifu2x {
         return stdout as string
     }
 
-    public static upscaleImages = async (sourceFolder: string, destFolder: string, options?: Waifu2xOptions) => {
+    public static upscaleImages = async (sourceFolder: string, destFolder?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
+        if (!destFolder) destFolder = "./"
         if (options.rename === undefined) options.rename = "2x"
         if (!options.recursion) options.recursion = 1
         if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
@@ -225,8 +226,9 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
+        if (!dest) dest = "./"
         const gifFrames = require("gif-frames")
         const frames = await gifFrames({url: source, frames: "all", cumulative: true})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
@@ -265,7 +267,7 @@ export default class Waifu2x {
             for (let i = 0; i < frameArray.length; i++) {
                 await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
                 scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-                const stop = progress(i + 1, frameArray.length)
+                const stop = progress ? progress(i + 1, frameArray.length) : false
                 if (stop) break
             }
         } else {
@@ -280,7 +282,7 @@ export default class Waifu2x {
         return `${folder}/${image}`
     }
 
-    public static upscaleGIFs = async (sourceFolder: string, destFolder: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder?: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -291,7 +293,7 @@ export default class Waifu2x {
             if (!fileMap[i]) break
             try {
                 const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
-                const stop = totalProgress(i + 1, options.limit)
+                const stop = totalProgress ? totalProgress(i + 1, options.limit) : false
                 retArray.push(ret)
                 if (stop) break
             } catch (err) {
@@ -301,17 +303,17 @@ export default class Waifu2x {
         return retArray
     }
 
-    public static upscaleVideo = async (source: string, dest: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
+    private static parseFramerate = async (file: string, ffmpegPath?: string) => {
+        let command = `ffmpeg -i ${file}`
+        if (ffmpegPath) command = `cd ${ffmpegPath} && ${command}`
+        const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
+        return Number(str.match(/[0-9]* (?=fps,)/)[0])
+    }
+
+    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
+        if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
-        if (options.ffprobePath) ffmpeg.setFfprobePath(options.ffprobePath) 
-        if (!options.framerate) {
-            options.framerate = await new Promise<number>((resolve) => {
-                ffmpeg.ffprobe(source, function(err: any, metadata: any) {
-                    resolve(Number(metadata.streams[0].r_frame_rate.split("/").reduce((acc: string, curr: string) => Number(acc) / Number(curr))))
-                })
-            })
-        }
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (path.isAbsolute(source) && path.isAbsolute(dest)) {
             folder = dest.slice(0, -5).includes(".") ? path.dirname(dest) : dest
@@ -321,6 +323,7 @@ export default class Waifu2x {
             folder = path.join(local, folder)
             source = path.join(local, source)
         }
+        if (!options.framerate) options.framerate = await Waifu2x.parseFramerate(source, options.ffmpegPath)
         const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
         if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
         fs.mkdirSync(frameDest, {recursive: true})
@@ -347,7 +350,7 @@ export default class Waifu2x {
             for (let i = 0; i < frameArray.length; i++) {
                 await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
                 scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-                const stop = progress(i + 1, frameArray.length)
+                const stop = progress ? progress(i + 1, frameArray.length) : false
                 if (stop) break
             }
         } else {
@@ -389,7 +392,7 @@ export default class Waifu2x {
         return `${folder}/${image}`
     }
 
-    public static upscaleVideos = async (sourceFolder: string, destFolder: string, options?: Waifu2xVideoOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -400,7 +403,7 @@ export default class Waifu2x {
             if (!fileMap[i]) break
             try {
                 const ret = await Waifu2x.upscaleVideo(fileMap[i], destFolder, options, progress)
-                const stop = totalProgress(i + 1, options.limit)
+                const stop = totalProgress ? totalProgress(i + 1, options.limit) : false
                 retArray.push(ret)
                 if (stop) break
             } catch (err) {
