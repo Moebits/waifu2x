@@ -49,6 +49,10 @@ await waifu2x.upscaleGIF("./images/gifs/megumin.gif", "./images/gifs/megumin2x.g
 the same as the upscaleGif() function. The limit parameter is the amount of gifs to process.*/
 await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0, limit: 10}, totalProgress, progress)
 
+/*By default, only one frame is upscaled at a time, but you can change this with the option parallelFrames. Note that setting this
+number too high can freeze your computer if it runs out of CPU/memory.*/
+await waifu2x.upscaleGIF("./images/gifs/parallel.gif", "./images/gifs/parallel.gif", {parallelFrames: 3}, progress)
+
 /*You can pass callback functions to both to track progress. You can also return true in order to stop early.*/
 let progress = (current: number, total: number) => {
   console.log(`Current Frame: ${current} Total Frames: ${total}`)
@@ -69,6 +73,9 @@ await waifu2x.upscaleVideo("./images/videos/gab.mp4", "./images/videos/gab2x.mp4
 
 /*Well, this is really not a good idea... The limit parameter is the amount of videos to process.*/
 await waifu2x.upscaleVideos("./images/videos", "./images/videos/upscaled", {reverse: true, limit: 10}, totalProgress, progress)
+
+/*Setting parallelFrames higher can improve performance at the cost of using more resources.*/
+await waifu2x.upscaleVideo("./images/videos/parallel.mp4", "./images/videos/parallel.mp4", {parallelFrames: 3}, progress)
 
 /*You can track progress the same as with GIFs. Returning true stops early.*/
 let progress = (current: number, total: number) => {
@@ -133,6 +140,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     limit?: number
+    parallelFrames?: number
 }
 ```
 
@@ -145,6 +153,8 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
+    ffprobePath?: string
+    parallelFrames?: number
 }
 ```
 <details>

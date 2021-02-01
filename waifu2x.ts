@@ -51,6 +51,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     limit?: number
+    parallelFrames?: number
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -60,6 +61,8 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     limit?: number
     ffmpegPath?: string
+    ffprobePath?: string
+    parallelFrames?: number
 }
 
 export default class Waifu2x {
@@ -261,11 +264,23 @@ export default class Waifu2x {
         options.rename = ""
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
-            for (let i = 0; i < frameArray.length; i++) {
-                await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
-                scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-                const stop = progress ? progress(i + 1, frameArray.length) : false
-                if (stop) break
+            let cancel = false
+            let counter = 1
+            let total = frameArray.length
+            let queue: string[][] = []
+            if (!options.parallelFrames) options.parallelFrames = 1
+            while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
+            if (progress) progress(0, total)
+            while (!cancel) {
+                for (let i = 0; i < queue.length; i++) {
+                    await Promise.all(queue[i].map(async (f) => {
+                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                        const stop = progress ? progress(counter++, total) : false
+                        if (stop) cancel = true
+                    }))
+                }
+                break
             }
         } else {
             scaledFrames = frameArray
@@ -286,6 +301,7 @@ export default class Waifu2x {
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
         if (!options.limit) options.limit = fileMap.length
         const retArray: string[] = []
+        if (totalProgress) totalProgress(0, options.limit)
         for (let i = 0; i < options.limit; i++) {
             if (!fileMap[i]) break
             try {
@@ -300,23 +316,30 @@ export default class Waifu2x {
         return retArray
     }
 
-    private static parseFramerate = async (file: string, ffmpegPath?: string) => {
+    public static parseFramerate = async (file: string, ffmpegPath?: string) => {
         let command = `${ffmpegPath ? ffmpegPath : "ffmpeg"} -i ${file}`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
-        return Number(str.match(/[0-9]* (?=fps,)/)[0])
+        return Number(str.match(/[0-9](.*?)(?=fps,)/)[0])
     }
 
     public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
+        if (options.ffprobePath) ffmpeg.setFfprobePath(options.ffprobePath) 
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
             source = path.join(local, source)
         }
-        if (!options.framerate) options.framerate = await Waifu2x.parseFramerate(source, options.ffmpegPath)
+        if (!options.framerate) {
+            options.framerate = await new Promise<number>((resolve) => {
+                ffmpeg.ffprobe(source, function(err: any, metadata: any) {
+                    resolve(Number(metadata.streams[0].r_frame_rate.split("/").reduce((acc: string, curr: string) => Number(acc) / Number(curr))))
+                })
+            })
+        }
         const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
         if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
         fs.mkdirSync(frameDest, {recursive: true})
@@ -340,11 +363,23 @@ export default class Waifu2x {
         let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png").sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
-            for (let i = 0; i < frameArray.length; i++) {
-                await Waifu2x.upscaleImage(frameArray[i], `${upScaleDest}/${path.basename(frameArray[i])}`, options)
-                scaledFrames.push(`${upScaleDest}/${path.basename(frameArray[i])}`)
-                const stop = progress ? progress(i + 1, frameArray.length) : false
-                if (stop) break
+            let cancel = false
+            let counter = 1
+            let total = frameArray.length
+            let queue: string[][] = []
+            if (!options.parallelFrames) options.parallelFrames = 1
+            while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
+            if (progress) progress(0, total)
+            while (!cancel) {
+                for (let i = 0; i < queue.length; i++) {
+                    await Promise.all(queue[i].map(async (f) => {
+                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                        const stop = progress ? progress(counter++, total) : false
+                        if (stop) cancel = true
+                    }))
+                }
+                break
             }
         } else {
             scaledFrames = frameArray
@@ -392,6 +427,7 @@ export default class Waifu2x {
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
         if (!options.limit) options.limit = fileMap.length
         const retArray: string[] = []
+        if (totalProgress) totalProgress(0, options.limit)
         for (let i = 0; i < options.limit; i++) {
             if (!fileMap[i]) break
             try {
