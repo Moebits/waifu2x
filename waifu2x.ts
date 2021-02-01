@@ -271,16 +271,14 @@ export default class Waifu2x {
             if (!options.parallelFrames) options.parallelFrames = 1
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
             if (progress) progress(0, total)
-            while (!cancel) {
-                for (let i = 0; i < queue.length; i++) {
-                    await Promise.all(queue[i].map(async (f) => {
-                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
-                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
-                        const stop = progress ? progress(counter++, total) : false
-                        if (stop) cancel = true
-                    }))
-                }
-                break
+            for (let i = 0; i < queue.length; i++) {
+                await Promise.all(queue[i].map(async (f) => {
+                    await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                    scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                    const stop = progress ? progress(counter++, total) : false
+                    if (stop) cancel = true
+                }))
+                if (cancel) break
             }
         } else {
             scaledFrames = frameArray
@@ -370,16 +368,14 @@ export default class Waifu2x {
             if (!options.parallelFrames) options.parallelFrames = 1
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
             if (progress) progress(0, total)
-            while (!cancel) {
-                for (let i = 0; i < queue.length; i++) {
-                    await Promise.all(queue[i].map(async (f) => {
-                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
-                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
-                        const stop = progress ? progress(counter++, total) : false
-                        if (stop) cancel = true
-                    }))
-                }
-                break
+            for (let i = 0; i < queue.length; i++) {
+                await Promise.all(queue[i].map(async (f) => {
+                    await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                    scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                    const stop = progress ? progress(counter++, total) : false
+                    if (stop) cancel = true
+                }))
+                if (cancel) break
             }
         } else {
             scaledFrames = frameArray
