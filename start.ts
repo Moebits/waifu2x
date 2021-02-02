@@ -9,7 +9,7 @@ import waifu2x from "./waifu2x"
     }
     // const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif", {parallelFrames: 3}, progress)
     // console.log(result)
-    const output = await waifu2x.upscaleVideo("./images/videos/original.mp4", "./images/videos/original2x.mp4", {scale: 1, speed: 1})
+    const output = await waifu2x.upscaleVideo("./images/videos/original.mp4", "./images/videos/original2x.mp4", {scale: 1})
     console.log(output)
     return
 })()

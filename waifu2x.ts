@@ -331,9 +331,11 @@ export default class Waifu2x {
             folder = path.join(local, folder)
             source = path.join(local, source)
         }
+        let duration = 0
         if (!options.framerate) {
             options.framerate = await new Promise<number>((resolve) => {
                 ffmpeg.ffprobe(source, function(err: any, metadata: any) {
+                    duration = metadata.format.duration
                     resolve(Number(metadata.streams[0].r_frame_rate.split("/").reduce((acc: string, curr: string) => Number(acc) / Number(curr))))
                 })
             })
@@ -345,7 +347,7 @@ export default class Waifu2x {
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
         await new Promise<void>((resolve) => {
-            ffmpeg(source).outputOptions(["-vf", `fps=1.0/${options.framerate}`])
+            ffmpeg(source).outputOptions([...framerate])
             .save(`${frameDest}/frame%d.png`)
             .on("end", () => resolve())
         })
@@ -354,7 +356,7 @@ export default class Waifu2x {
             ffmpeg(source).save(audio)
             .on("end", () => resolve())
             .on("error", () => reject())
-        }).catch(() => null)
+        }).catch(() => audio = "")
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
@@ -381,7 +383,9 @@ export default class Waifu2x {
             scaledFrames = frameArray
             upScaleDest = frameDest
         }
-        if (fs.existsSync(audio)) {
+        let tempDest = `${upScaleDest}/temp.mp4`
+        let finalDest = `${folder}/${image}`
+        if (audio) {
             let filter: string[] = ["-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2"]
             if (options.speed) {
                 filter = ["-filter_complex", `[0:v]crop=trunc(iw/2)*2:trunc(ih/2)*2,setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
@@ -392,14 +396,14 @@ export default class Waifu2x {
                 })
                 await new Promise<void>((resolve) => {
                     ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...filter])
-                    .save(`${folder}/${image}`)
+                    .save(tempDest)
                     .on("end", () => resolve())
                 })
             } else {
                 if (options.reverse) filter = ["-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2,reverse", "-af", "areverse"]
                 await new Promise<void>((resolve) => {
                     ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...filter])
-                    .save(`${folder}/${image}`)
+                    .save(tempDest)
                     .on("end", () => resolve())
                 })
             }
@@ -408,12 +412,25 @@ export default class Waifu2x {
             if (options.reverse && !filter[0]) filter = ["-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2,reverse"]
             await new Promise<void>((resolve) => {
                 ffmpeg(`${upScaleDest}/frame%d.png`).outputOptions([...framerate, ...codec, ...crf, ...filter])
-                .save(`${folder}/${image}`)
+                .save(tempDest)
                 .on("end", () => resolve())
             })
         }
+        let newDuration = await new Promise<number>((resolve) => {
+            ffmpeg.ffprobe(tempDest, function(err: any, metadata: any) {
+                resolve(metadata.format.duration)
+            })
+        })
+        let factor = duration / options.speed / newDuration
+        let filter = ["-filter_complex", `[0:v]crop=trunc(iw/2)*2:trunc(ih/2)*2,setpts=${factor}*PTS[v]`, "-map", "[v]"]
+        if (audio) filter = ["-filter_complex", `[0:v]crop=trunc(iw/2)*2:trunc(ih/2)*2,setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
+        await new Promise<void>((resolve) => {
+            ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...filter])
+            .save(finalDest)
+            .on("end", () => resolve())
+        })
         Waifu2x.removeDirectory(frameDest)
-        return `${folder}/${image}`
+        return finalDest
     }
 
     public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
