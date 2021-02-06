@@ -42,7 +42,7 @@ export interface Waifu2xOptions {
     recursive?: boolean
     modelDir?: string
     rename?: string
-    callFromPath?: boolean
+    waifu2xPath?: string
     limit?: number
     parallelFrames?: number
 }
@@ -126,7 +126,7 @@ export default class Waifu2x {
         let destPath = `${folder}/${image}`
         const absolute = path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
-        if (options.callFromPath) program = "waifu2x-converter-cpp"
+        if (options.waifu2xPath) program = options.waifu2xPath
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
