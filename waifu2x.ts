@@ -39,19 +39,18 @@ export interface Waifu2xOptions {
     forceOpenCL?: boolean
     processor?: number
     threads?: number
+    recursive?: boolean
     modelDir?: string
-    recursion?: 0 | 1
-    recursionFormat?: Waifu2xFormats
     rename?: string
     callFromPath?: boolean
+    limit?: number
+    parallelFrames?: number
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    limit?: number
-    parallelFrames?: number
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -59,10 +58,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    limit?: number
     ffmpegPath?: string
-    ffprobePath?: string
-    parallelFrames?: number
 }
 
 export default class Waifu2x {
@@ -103,16 +99,6 @@ export default class Waifu2x {
         }
     }
 
-    public static processorList = async (options?: {callFromPath?: boolean}) => {
-        if (!options) options = {}
-        const absolute = path.join(__dirname, "../waifu2x")
-        let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
-        if (options.callFromPath) program = "waifu2x-converter-cpp"
-        let command = `${program} -l`
-        const {stdout} = await exec(command)
-        return stdout.split("\n").map((s: string) => s.trim()).join("\n") as string
-    }
-
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
         if (!dest) dest = "./"
@@ -129,7 +115,7 @@ export default class Waifu2x {
         const absolute = path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
         if (options.callFromPath) program = "waifu2x-converter-cpp"
-        let command = `${program} -i "${sourcePath}" -o "${destPath}" -v 3`
+        let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.mode) command += ` -m ${options.mode}`
@@ -145,47 +131,53 @@ export default class Waifu2x {
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
             command += ` --model-dir "${options.modelDir}"`
         }
-        const {stdout} = await exec(command)
-        return stdout as string
+        await exec(command)
+        return destPath as string
     }
 
-    public static upscaleImages = async (sourceFolder: string, destFolder?: string, options?: Waifu2xOptions) => {
+    private static recursiveSearch = (dir: string) => {
+        const files = fs.readdirSync(dir)
+        let fileMap = files.map((file) => `${dir}/${file}`).filter((f) => fs.lstatSync(f).isFile())
+        const dirMap = files.map((file) => `${dir}/${file}`).filter((f) => fs.lstatSync(f).isDirectory())
+        for (let i = 0; i < dirMap.length; i++) {
+            const search = Waifu2x.recursiveSearch(dirMap[i])
+            fileMap = [...fileMap, ...search]
+        }
+        return fileMap
+    }
+
+    public static upscaleImages = async (sourceFolder: string, destFolder?: string, options?: Waifu2xOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
-        if (!destFolder) destFolder = "./"
-        if (options.rename === undefined) options.rename = "2x"
-        if (!options.recursion) options.recursion = 1
-        if (!fs.existsSync(destFolder)) fs.mkdirSync(destFolder, {recursive: true})
-        let sourcePath = sourceFolder
-        let destPath = destFolder
-        let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
-        if (!path.isAbsolute(sourceFolder) && !path.isAbsolute(destFolder)) {
-            sourcePath = path.join(local, sourceFolder)
-            destPath = path.join(local, destFolder)
+        const files = fs.readdirSync(sourceFolder)
+        if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
+        let fileMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isFile())
+        const dirMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isDirectory())
+        if (options.recursive) {
+            for (let i = 0; i < dirMap.length; i++) {
+                const search = Waifu2x.recursiveSearch(dirMap[i])
+                fileMap = [...fileMap, ...search]
+            }
         }
-        const absolute = path.join(__dirname, "../waifu2x")
-        let program = `cd ${absolute} && waifu2x-converter-cpp.exe`
-        if (options.callFromPath) program = "waifu2x-converter-cpp"
-        let command = `${program} -i "${sourcePath}" -o "${destPath}" -r ${options.recursion} -s`
-        if (options.noise) command += ` --noise-level ${options.noise}`
-        if (options.scale) command +=  ` --scale-ratio ${options.scale}`
-        if (options.mode) command += ` -m ${options.mode}`
-        if (options.pngCompression) command += ` -c ${options.pngCompression}`
-        if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
-        if (options.blockSize) command += ` --block-size ${options.blockSize}`
-        if (options.disableGPU) command += ` --disable-gpu`
-        if (options.forceOpenCL) command += ` --force-OpenCL`
-        if (options.processor) command += ` -p ${options.processor}`
-        if (options.threads) command += ` -j ${options.threads}`
-        if (options.recursionFormat) command += ` -f ${options.recursionFormat.toUpperCase()}`
-        if (options.modelDir) {
-            if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
-            if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
-            command += ` --model-dir "${options.modelDir}"`
+        if (!options.limit) options.limit = fileMap.length
+        const retArray: string[] = []
+        let cancel = false
+        let counter = 1
+        let total = fileMap.length
+        let queue: string[][] = []
+        if (!options.parallelFrames) options.parallelFrames = 1
+        while (fileMap.length) queue.push(fileMap.splice(0, options.parallelFrames))
+        if (progress) progress(0, total)
+        for (let i = 0; i < queue.length; i++) {
+            await Promise.all(queue[i].map(async (f) => {
+                if (counter >= options.limit) cancel = true
+                const ret = await Waifu2x.upscaleImage(f, destFolder, options)
+                retArray.push(ret)
+                const stop = progress ? progress(counter++, total) : false
+                if (stop) cancel = true
+            }))
+            if (cancel) break
         }
-        const {stdout} = await exec(command)
-        const files = fs.readdirSync(destFolder)
-        Waifu2x.recursiveRename(destFolder, files, options.rename)
-        return stdout as string
+        return retArray
     }
 
     private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number) => {
@@ -229,7 +221,7 @@ export default class Waifu2x {
         })
     }
 
-    public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
         const gifFrames = require("gif-frames")
@@ -292,7 +284,7 @@ export default class Waifu2x {
         return `${folder}/${image}`
     }
 
-    public static upscaleGIFs = async (sourceFolder: string, destFolder?: string, options?: Waifu2xGIFOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleGIFs = async (sourceFolder: string, destFolder?: string, options?: Waifu2xGIFOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
@@ -314,32 +306,31 @@ export default class Waifu2x {
         return retArray
     }
 
-    public static parseFramerate = async (file: string, ffmpegPath?: string) => {
+    private static parseFramerate = async (file: string, ffmpegPath?: string) => {
         let command = `${ffmpegPath ? ffmpegPath : "ffmpeg"} -i ${file}`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
         return Number(str.match(/[0-9.]+ (?=fps,)/)[0])
     }
 
-    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current?: number, total?: number) => void | boolean) => {
+    private static parseDuration = async (file: string, ffmpegPath?: string) => {
+        let command = `${ffmpegPath ? ffmpegPath : "ffmpeg"} -i ${file}`
+        const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
+        const tim =  str.match(/(?<=Duration: )(.*?)(?=,)/)[0].split(":").map((n: string) => Number(n))
+        return (tim[0] * 60 * 60) + (tim[1] * 60) + tim[2]
+    }
+
+    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
-        if (options.ffprobePath) ffmpeg.setFfprobePath(options.ffprobePath) 
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
             source = path.join(local, source)
         }
-        let duration = 0
-        if (!options.framerate) {
-            options.framerate = await new Promise<number>((resolve) => {
-                ffmpeg.ffprobe(source, function(err: any, metadata: any) {
-                    duration = metadata.format.duration
-                    resolve(Number(metadata.streams[0].r_frame_rate.split("/").reduce((acc: string, curr: string) => Number(acc) / Number(curr))))
-                })
-            })
-        }
+        let duration = await Waifu2x.parseDuration(source, options.ffmpegPath)
+        if (!options.framerate) options.framerate = await Waifu2x.parseFramerate(source, options.ffmpegPath)
         const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
         if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
         fs.mkdirSync(frameDest, {recursive: true})
@@ -417,11 +408,7 @@ export default class Waifu2x {
                 .on("end", () => resolve())
             })
         }
-        let newDuration = await new Promise<number>((resolve) => {
-            ffmpeg.ffprobe(tempDest, function(err: any, metadata: any) {
-                resolve(metadata.format.duration)
-            })
-        })
+        let newDuration = await Waifu2x.parseDuration(tempDest)
         if (!options.speed) options.speed = 1
         let factor = duration / options.speed / newDuration
         let filter = ["-filter_complex", `[0:v]${crop}setpts=${factor}*PTS[v]`, "-map", "[v]"]
@@ -435,7 +422,7 @@ export default class Waifu2x {
         return finalDest
     }
 
-    public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current?: number, total?: number) => void | boolean, progress?: (current?: number, total?: number) => void | boolean) => {
+    public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)

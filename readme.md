@@ -28,14 +28,18 @@ import waifu2x from "waifu2x"
 You can optionally set the noise level (0/1/2/3), scale factor (default 2.0), mode (noise/scale/noise-scale), pngCompression (0-9), and jpgWebpQuality (0-101).*/
 await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.png", {noise: 2, scale: 2.0})
 
-/*Recursively upscales all images in a directory. Set recursion to 1 to also upscale all images in all sub directories
-(this is the default), or to 0 to only scale images in that specific folder. You can also optionally specify the 
-recursionFormat, which will be the format for all the converted images, and the rename, which will be appended to the
+/*Upscales all images in a directory. Set recursive to true to also upscale all images in all sub directories, or to false to only scale images in that specific folder (this is the default). The rename will be appended to the
 end of all the new filenames (default is 2x).*/
-await waifu2x.upscaleImages("./images", "./upscaled", {recursion: 1, rename: "2x"})
+await waifu2x.upscaleImages("./images", "./upscaled", {recursive: true, rename: "2x"}, progress)
 
 /*You can also use absolute paths, or call waifu2x-converter-cpp directly if you want to use your own installation.*/
 await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {callFromPath: true})
+
+/*This callback function can track progress. Return true in order to stop early.*/
+let progress = (current: number, total: number) => {
+  console.log(`Current Image: ${current} Total Images: ${total}`)
+  if (current === 5) return true
+}
 ```
 
 #### Upscaling Gifs
@@ -126,10 +130,11 @@ export interface Waifu2xOptions {
     processor?: number
     threads?: number
     modelDir?: string
-    recursion?: 0 | 1
-    recursionFormat?: Waifu2xFormats
+    recursive?: boolean
     rename?: string
     callFromPath?: boolean
+    limit?: number
+    parallelFrames?: number
 }
 ```
 
@@ -139,8 +144,6 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    limit?: number
-    parallelFrames?: number
 }
 ```
 
@@ -151,10 +154,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    limit?: number
     ffmpegPath?: string
-    ffprobePath?: string
-    parallelFrames?: number
 }
 ```
 <details>
