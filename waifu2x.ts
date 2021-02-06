@@ -116,14 +116,14 @@ export default class Waifu2x {
         if (!dest) dest = "./"
         if (options.rename === undefined) options.rename = "2x"
         let sourcePath = source
-        let destPath = dest
+        let {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
+        if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
         let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
-            const {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
-            if (!fs.existsSync(folder)) fs.mkdirSync(folder, {recursive: true})
             sourcePath = path.join(local, source)
-            destPath = path.join(local, folder, image)
+            folder = path.join(local, folder)
         }
+        let destPath = `${folder}/${image}`
         const absolute = path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
         if (options.callFromPath) program = "waifu2x-converter-cpp"
