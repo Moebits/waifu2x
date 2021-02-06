@@ -124,7 +124,7 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let destPath = `${folder}/${image}`
-        const absolute = __dirname.includes("node_modules") ? path.join(__dirname, "node_modules/waifu2x/waifu2x") : path.join(__dirname, "../waifu2x")
+        const absolute = path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
         if (options.callFromPath) program = "waifu2x-converter-cpp"
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
