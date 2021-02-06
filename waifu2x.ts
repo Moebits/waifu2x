@@ -99,6 +99,18 @@ export default class Waifu2x {
         }
     }
 
+    public static parseDest = (source: string, dest?: string, options?: {rename?: string}) => {
+        if (!options) options = {}
+        if (!dest) dest = "./"
+        if (options.rename === undefined) options.rename = "2x"
+        let {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
+        if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
+            let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
+            folder = path.join(local, folder)
+        }
+        return path.normalize(`${folder}/${image}`)
+    }
+
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
         if (!options) options = {}
         if (!dest) dest = "./"
