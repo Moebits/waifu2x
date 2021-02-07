@@ -111,6 +111,10 @@ export default class Waifu2x {
         return path.normalize(`${folder}/${image}`)
     }
 
+    private static timeout = async (ms: number) => {
+        return new Promise((resolve) => setTimeout(resolve, ms))
+    }
+
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, action?: () => "stop" | void) => {
         if (!options) options = {}
         if (!dest) dest = "./"
@@ -144,16 +148,18 @@ export default class Waifu2x {
         }
         const child = child_process.exec(command)
         let stopped = false
-        const poll = () => {
-            if (action && action() === "stop") {
-                child.kill("SIGINT")
+        const poll = async () => {
+            if (action() === "stop") {
                 stopped = true
+                child.kill("SIGINT")
             }
-            if (!stopped) setTimeout(() => {poll()}, 1000)
+            await Waifu2x.timeout(1000)
+            if (!stopped) poll()
         }
-        poll()
+        if (action) poll()
         await new Promise<void>((resolve) => {
-            child.on("close", () => {
+            child.on("exit", (code, signal) => {
+                if (signal === "SIGINT") setTimeout(() => {process.exit()}, 10)
                 stopped = true
                 resolve()
             })
