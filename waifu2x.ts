@@ -151,6 +151,7 @@ export default class Waifu2x {
         const poll = async () => {
             if (action() === "stop") {
                 stopped = true
+                child.stdio.forEach((s) => s.destroy())
                 child.kill("SIGINT")
             }
             await Waifu2x.timeout(1000)
@@ -158,8 +159,7 @@ export default class Waifu2x {
         }
         if (action) poll()
         await new Promise<void>((resolve) => {
-            child.on("exit", (code, signal) => {
-                if (signal === "SIGINT") setTimeout(() => {process.exit()}, 10)
+            child.on("exit", () => {
                 stopped = true
                 resolve()
             })
