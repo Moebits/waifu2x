@@ -333,7 +333,7 @@ export default class Waifu2x {
     public static parseResolution = async (file: string, ffmpegPath?: string) => {
         let command = `${ffmpegPath ? ffmpegPath : "ffmpeg"} -i ${file}`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
-        const dim = str.match(/(?<= )\d+x\d+(?= )/)[0].split("x")
+        const dim = str.match(/(?<= )\d+x\d+(?= |,)/)[0].split("x")
         return {width: Number(dim[0]), height: Number(dim[1])}
     }
 
