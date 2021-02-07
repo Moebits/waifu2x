@@ -5,7 +5,7 @@ import * as ffmpeg from "fluent-ffmpeg"
 import * as path from "path"
 import * as child_process from "child_process"
 
-const exec = util.promisify(require("child_process").exec)
+const exec = util.promisify(child_process.exec)
 
 export type Waifu2xFormats =
     | "bmp"
@@ -111,7 +111,7 @@ export default class Waifu2x {
         return path.normalize(`${folder}/${image}`)
     }
 
-    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions) => {
+    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, action?: () => "stop" | void) => {
         if (!options) options = {}
         if (!dest) dest = "./"
         if (options.rename === undefined) options.rename = "2x"
@@ -126,7 +126,7 @@ export default class Waifu2x {
         let destPath = `${folder}/${image}`
         const absolute = options.waifu2xPath ? options.waifu2xPath : path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
-        let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
+        let command = `${program} -i "${sourcePath}" -o "${destPath}" -v 3`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
         if (options.mode) command += ` -m ${options.mode}`
@@ -142,7 +142,22 @@ export default class Waifu2x {
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
             command += ` --model-dir "${options.modelDir}"`
         }
-        await exec(command)
+        const child = child_process.exec(command)
+        let stopped = false
+        const poll = () => {
+            if (action && action() === "stop") {
+                child.kill("SIGINT")
+                stopped = true
+            }
+            if (!stopped) setTimeout(() => {poll()}, 1000)
+        }
+        poll()
+        await new Promise<void>((resolve) => {
+            child.on("close", () => {
+                stopped = true
+                resolve()
+            })
+        })
         return destPath as string
     }
 
