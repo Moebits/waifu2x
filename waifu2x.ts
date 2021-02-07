@@ -124,9 +124,8 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let destPath = `${folder}/${image}`
-        const absolute = path.join(__dirname, "../waifu2x")
+        const absolute = options.waifu2xPath ? options.waifu2xPath : path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
-        if (options.waifu2xPath) program = options.waifu2xPath
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`

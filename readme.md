@@ -32,8 +32,8 @@ await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.pn
 end of all the new filenames (default is 2x).*/
 await waifu2x.upscaleImages("./images", "./upscaled", {recursive: true, rename: "2x"}, progress)
 
-/*You can also use absolute paths, or set a custom path to waifu2x if you are bundling it yourself. It must be the path to waifu2x-converter-cpp.exe.*/
-await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {waifu2xPath: "waifu2x-converter-cpp.exe"})
+/*You can also use absolute paths, or set a custom path to waifu2x if you are bundling it yourself. It must be the path to the folder that waifu2x-converter-cpp.exe is in.*/
+await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {waifu2xPath: "F:/Documents/waifu2x"})
 
 /*This callback function can track progress. Return true in order to stop early.*/
 let progress = (current: number, total: number) => {
