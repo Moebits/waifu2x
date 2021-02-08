@@ -8,8 +8,6 @@ import waifu2x from "./waifu2x"
             return true
         }
     }
-    const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif")
-    console.log(result)
-    // const output = await waifu2x.upscaleVideo("./images/videos/gab1.mp4", "./images/videos/gab12x.mp4", {scale: 1})
-    // console.log(output)
+    // const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif")
+    // console.log(result)
 })()
