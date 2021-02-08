@@ -415,7 +415,7 @@ export default class Waifu2x {
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             let cancel = false
-            let counter = 1
+            let counter = 0
             let total = frameArray.length
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
