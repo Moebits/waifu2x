@@ -1,6 +1,6 @@
 {
   "name": "waifu2x",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "2x upscaling of images with waifu2x",
   "main": "dist/waifu2x.js",
   "types": "dist/waifu2x.d.ts",
@@ -26,11 +26,10 @@
     "typescript": "^3.6.4"
   },
   "dependencies": {
-    "cancelable-promise": "^3.2.3",
     "fluent-ffmpeg": "^2.1.2",
     "get-pixels": "^3.3.2",
     "gif-encoder": "^0.7.2",
     "gif-frames": "^1.0.1",
-    "image-size": "^0.8.3"
+    "image-size": "^0.9.3"
   }
 }
