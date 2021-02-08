@@ -9,7 +9,7 @@
 
 ### About
 This package uses the pre-built Windows x64 binaries from [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp) in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
-to have [**ffmpeg**](https://ffmpeg.org/) installed.
+to have [**ffmpeg**](https://ffmpeg.org/) installed. For a gui version, you can also see my [Waifu2x GUI app](https://github.com/Tenpi/Waifu2x-GUI).
 
 ### Insall
 ```ts

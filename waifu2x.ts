@@ -310,6 +310,7 @@ export default class Waifu2x {
         } else {
             scaledFrames = frameArray
         }
+        scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         if (options.reverse) {
             scaledFrames = scaledFrames.reverse()
             delayArray = delayArray.reverse()
@@ -393,7 +394,7 @@ export default class Waifu2x {
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
-        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png").sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png")
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             let cancel = false
@@ -416,6 +417,7 @@ export default class Waifu2x {
             scaledFrames = frameArray
             upScaleDest = frameDest
         }
+        scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let tempDest = `${upScaleDest}/temp.mp4`
         let finalDest = `${folder}/${image}`
         let crop = "crop=trunc(iw/2)*2:trunc(ih/2)*2"
