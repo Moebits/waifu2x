@@ -2,6 +2,7 @@ import * as util from "util"
 import * as fs from "fs"
 import {imageSize} from "image-size"
 import * as ffmpeg from "fluent-ffmpeg"
+import {CancelablePromise} from "cancelable-promise"
 import * as path from "path"
 import * as child_process from "child_process"
 
@@ -51,6 +52,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
+    cumulative?: boolean
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -257,7 +259,8 @@ export default class Waifu2x {
         if (!options) options = {}
         if (!dest) dest = "./"
         const gifFrames = require("gif-frames")
-        const frames = await gifFrames({url: source, frames: "all", cumulative: true})
+        if (!options.cumulative) options.cumulative = false
+        const frames = await gifFrames({url: source, frames: "all", cumulative: options.cumulative})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -289,21 +292,39 @@ export default class Waifu2x {
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             let cancel = false
-            let counter = 1
+            let counter = 0
             let total = frameArray.length
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
-            if (progress) progress(0, total)
+            if (progress) progress(counter++, total)
+            const cancelPromise = new CancelablePromise(async (resolve) => {
+                const interval = setInterval(() => {
+                    const stop = progress ? progress(counter, total) : false
+                    if (counter >= total || stop || cancel) {
+                        cancel = true
+                        clearInterval(interval)
+                        resolve()
+                    }
+                }, 1000)
+            })
             for (let i = 0; i < queue.length; i++) {
-                await Promise.all(queue[i].map(async (f) => {
-                    await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
-                    scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
-                    const stop = progress ? progress(counter++, total) : false
-                    if (stop) cancel = true
-                }))
-                if (cancel) break
+                const promises = queue[i].map((f) => {
+                    return new CancelablePromise(async (resolve) => {
+                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                        progress ? progress(counter++, total) : false
+                        resolve()
+                    })
+                })
+                await Promise.race([Promise.all(promises), cancelPromise])
+                cancelPromise.cancel()
+                if (cancel) {
+                    promises.forEach((p) => p.cancel())
+                    break
+                }
             }
+            cancel = true
         } else {
             scaledFrames = frameArray
         }
@@ -399,16 +420,34 @@ export default class Waifu2x {
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
-            if (progress) progress(0, total)
+            if (progress) progress(counter++, total)
+            const cancelPromise = new CancelablePromise(async (resolve) => {
+                const interval = setInterval(() => {
+                    const stop = progress ? progress(counter, total) : false
+                    if (counter >= total || stop || cancel) {
+                        cancel = true
+                        clearInterval(interval)
+                        resolve()
+                    }
+                }, 1000)
+            })
             for (let i = 0; i < queue.length; i++) {
-                await Promise.all(queue[i].map(async (f) => {
-                    await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
-                    scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
-                    const stop = progress ? progress(counter++, total) : false
-                    if (stop) cancel = true
-                }))
-                if (cancel) break
+                const promises = queue[i].map((f) => {
+                    return new CancelablePromise(async (resolve) => {
+                        await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                        scaledFrames.push(`${upScaleDest}/${path.basename(f)}`)
+                        progress ? progress(counter++, total) : false
+                        resolve()
+                    })
+                })
+                await Promise.race([Promise.all(promises), cancelPromise])
+                cancelPromise.cancel()
+                if (cancel) {
+                    promises.forEach((p) => p.cancel())
+                    break
+                }
             }
+            cancel = true
         } else {
             scaledFrames = frameArray
             upScaleDest = frameDest
