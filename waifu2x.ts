@@ -255,11 +255,12 @@ export default class Waifu2x {
 
     private static newDest = (dest: string) => {
         let i = 1
-        while (fs.existsSync(dest)) {
-            dest = `${dest}_${i}`
+        let newDest = dest
+        while (fs.existsSync(newDest)) {
+            newDest = `${dest}_${i}`
             i++
         }
-        return dest
+        return newDest
     }
 
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
