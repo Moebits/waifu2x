@@ -145,6 +145,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     cumulative?: boolean
+    transparentColor?: string
 }
 ```
 

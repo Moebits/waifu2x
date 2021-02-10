@@ -52,6 +52,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     cumulative?: boolean
+    transparentColor?: string
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -213,7 +214,7 @@ export default class Waifu2x {
         return retArray
     }
 
-    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number) => {
+    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparentColor?: string) => {
         const GifEncoder = require("gif-encoder")
         const getPixels = require("get-pixels")
         if (!quality) quality = 10
@@ -225,7 +226,7 @@ export default class Waifu2x {
             gif.setQuality(quality)
             gif.setRepeat(0)
             gif.writeHeader()
-            gif.setTransparent("#000000")
+            if (transparentColor) gif.setTransparent(transparentColor)
             let counter = 0
 
             const addToGif = (frames: string[]) => {
@@ -326,7 +327,7 @@ export default class Waifu2x {
             delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality)
+        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparentColor)
         Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest)
     }
