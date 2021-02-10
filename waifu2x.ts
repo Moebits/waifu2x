@@ -253,6 +253,15 @@ export default class Waifu2x {
         })
     }
 
+    private static newDest = (dest: string) => {
+        let i = 1
+        while (fs.existsSync(dest)) {
+            dest = `${dest}_${i}`
+            i++
+        }
+        return dest
+    }
+
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
@@ -264,9 +273,9 @@ export default class Waifu2x {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
         }
-        const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
-        if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
-        if (!fs.existsSync(frameDest)) fs.mkdirSync(frameDest, {recursive: true})
+        let frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
+        if (fs.existsSync(frameDest)) frameDest = Waifu2x.newDest(frameDest)
+        fs.mkdirSync(frameDest, {recursive: true})
         const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
         let step = Math.ceil(frames.length / constraint)
         const frameArray: string[] = []
@@ -373,9 +382,9 @@ export default class Waifu2x {
         }
         let duration = await Waifu2x.parseDuration(source, options.ffmpegPath)
         if (!options.framerate) options.framerate = await Waifu2x.parseFramerate(source, options.ffmpegPath)
-        const frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
-        if (fs.existsSync(frameDest)) Waifu2x.removeDirectory(frameDest)
-        if (!fs.existsSync(frameDest)) fs.mkdirSync(frameDest, {recursive: true})
+        let frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
+        if (fs.existsSync(frameDest)) frameDest = Waifu2x.newDest(frameDest)
+        fs.mkdirSync(frameDest, {recursive: true})
         let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
