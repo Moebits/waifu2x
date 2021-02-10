@@ -128,7 +128,7 @@ export default class Waifu2x {
             sourcePath = path.join(local, source)
             folder = path.join(local, folder)
         }
-        let destPath = `${folder}/${image}`
+        let destPath = path.join(folder, image)
         const absolute = options.waifu2xPath ? options.waifu2xPath : path.join(__dirname, "../waifu2x")
         let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
@@ -225,6 +225,7 @@ export default class Waifu2x {
             gif.setQuality(quality)
             gif.setRepeat(0)
             gif.writeHeader()
+            gif.setTransparent("#000000")
             let counter = 0
 
             const addToGif = (frames: string[]) => {
@@ -269,7 +270,7 @@ export default class Waifu2x {
         if (!dest) dest = "./"
         const gifFrames = require("gif-frames")
         if (!options.cumulative) options.cumulative = false
-        const frames = await gifFrames({url: source, frames: "all", cumulative: options.cumulative})
+        const frames = await gifFrames({url: source, frames: "all", outputType: "png", cumulative: options.cumulative})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -285,9 +286,9 @@ export default class Waifu2x {
         async function downloadFrames(frames: any) {
             const promiseArray = []
             for (let i = 0; i < frames.length; i += step) {
-                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.jpg`)
+                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.png`)
                 frames[i].getImage().pipe(writeStream)
-                frameArray.push(`${frameDest}/frame${i}.jpg`)
+                frameArray.push(`${frameDest}/frame${i}.png`)
                 delayArray.push(frames[i].frameInfo.delay)
                 promiseArray.push(Waifu2x.awaitStream(writeStream))
             }
@@ -324,7 +325,7 @@ export default class Waifu2x {
             scaledFrames = scaledFrames.reverse()
             delayArray = delayArray.reverse()
         }
-        const finalDest = `${folder}/${image}`
+        const finalDest = path.join(folder, image)
         await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality)
         Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest)
@@ -429,7 +430,7 @@ export default class Waifu2x {
         }
         scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let tempDest = `${upScaleDest}/temp.mp4`
-        let finalDest = `${folder}/${image}`
+        let finalDest = path.join(folder, image)
         let crop = "crop=trunc(iw/2)*2:trunc(ih/2)*2"
         if (!options.speed) options.speed = 1
         if (!options.reverse) options.reverse = false

@@ -4,6 +4,6 @@ import waifu2x from "./waifu2x"
     const progress = (current: number, total: number) => {
         console.log(`Current: ${current} Total: ${total}`)
     }
-    const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif", {scale: 2}, progress)
+    const result = await waifu2x.upscaleGIF("F:/Downloads/kannaGIF.gif", "F:/Downloads/unnamed2x.gif", {scale: 1, cumulative: false})
     console.log(result)
 })()
