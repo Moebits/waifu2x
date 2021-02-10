@@ -219,7 +219,7 @@ export default class Waifu2x {
         if (!quality) quality = 10
         return new Promise<void>((resolve) => {
             const dimensions = imageSize(files[0])
-            const gif = new GifEncoder(dimensions.width, dimensions.height)
+            const gif = new GifEncoder(dimensions.width, dimensions.height, {highWaterMark: 5 * 1024 * 1024})
             const file = fs.createWriteStream(dest)
             gif.pipe(file)
             gif.setQuality(quality)
@@ -229,6 +229,7 @@ export default class Waifu2x {
 
             const addToGif = (frames: string[]) => {
                 getPixels(frames[counter], function(err: Error, pixels: any) {
+                    gif.read(1024 * 1024)
                     gif.setDelay(10 * delays[counter])
                     gif.addFrame(pixels.data)
                     if (counter >= frames.length - 1) {
