@@ -1,6 +1,6 @@
 {
   "name": "waifu2x",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "2x upscaling of images with waifu2x",
   "main": "dist/waifu2x.js",
   "types": "dist/waifu2x.d.ts",
@@ -22,6 +22,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tenpi/tslint": "^1.0.5",
+    "@types/fluent-ffmpeg": "^2.1.16",
     "@types/node": "^12.11.6",
     "typescript": "^3.6.4"
   },

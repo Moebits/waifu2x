@@ -4,6 +4,8 @@ import {imageSize} from "image-size"
 import * as ffmpeg from "fluent-ffmpeg"
 import * as path from "path"
 import * as child_process from "child_process"
+import * as GifEncoder from "gif-encoder"
+import * as getPixels from "get-pixels"
 
 const exec = util.promisify(child_process.exec)
 
@@ -52,7 +54,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     cumulative?: boolean
-    transparentColor?: string
+    transparency?: boolean
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -214,9 +216,7 @@ export default class Waifu2x {
         return retArray
     }
 
-    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparentColor?: string) => {
-        const GifEncoder = require("gif-encoder")
-        const getPixels = require("get-pixels")
+    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparency?: boolean) => {
         if (!quality) quality = 10
         return new Promise<void>((resolve) => {
             const dimensions = imageSize(files[0])
@@ -226,7 +226,7 @@ export default class Waifu2x {
             gif.setQuality(quality)
             gif.setRepeat(0)
             gif.writeHeader()
-            if (transparentColor) gif.setTransparent(transparentColor)
+            if (transparency) gif.setTransparent(true)
             let counter = 0
 
             const addToGif = (frames: string[]) => {
@@ -327,7 +327,7 @@ export default class Waifu2x {
             delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparentColor)
+        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparency)
         Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest)
     }
