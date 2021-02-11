@@ -6,6 +6,7 @@ import * as path from "path"
 import * as child_process from "child_process"
 import * as GifEncoder from "gif-encoder"
 import * as getPixels from "get-pixels"
+import * as gifFrames from "gif-frames"
 
 const exec = util.promisify(child_process.exec)
 
@@ -62,6 +63,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
+    pitch?: boolean
     ffmpegPath?: string
 }
 
@@ -269,7 +271,6 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
-        const gifFrames = require("gif-frames")
         if (!options.cumulative) options.cumulative = false
         const frames = await gifFrames({url: source, frames: "all", outputType: "png", cumulative: options.cumulative})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
@@ -397,9 +398,9 @@ export default class Waifu2x {
             .save(`${frameDest}/frame%d.png`)
             .on("end", () => resolve())
         })
-        let audio = `${frameDest}/audio.mp3`
+        let audio = `${frameDest}/audio.wav`
         await new Promise<void>((resolve, reject) => {
-            ffmpeg(source).save(audio)
+            ffmpeg(source).outputOptions("-bitexact").save(audio)
             .on("end", () => resolve())
             .on("error", () => reject())
         }).catch(() => audio = "")
@@ -442,12 +443,17 @@ export default class Waifu2x {
                 .save(`${upScaleDest}/${image}`)
                 .on("end", () => resolve())
             })
-            filter = ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]atempo=${options.speed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
-            await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...filter])
-                .save(tempDest)
-                .on("end", () => resolve())
-            })
+            if (options.speed === 1 && !options.reverse) {
+                tempDest = `${upScaleDest}/${image}`
+            } else {
+                let audioSpeed = options.pitch ? `asetrate=44100*${options.speed},aresample=44100` : `atempo=${options.speed}`
+                filter = ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]${audioSpeed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
+                await new Promise<void>((resolve) => {
+                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                    .save(tempDest)
+                    .on("end", () => resolve())
+                })
+            }
         } else {
             let filter = ["-filter_complex", `[0:v]${crop},setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"]
             await new Promise<void>((resolve) => {

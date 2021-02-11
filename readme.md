@@ -156,6 +156,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
+    pitch?: boolean
     ffmpegPath?: string
 }
 ```
