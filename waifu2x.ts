@@ -134,8 +134,8 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let destPath = path.join(folder, image)
-        const absolute = options.waifu2xPath ? options.waifu2xPath : path.join(__dirname, "../waifu2x")
-        let program = `cd ${absolute}/ && waifu2x-converter-cpp.exe`
+        const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath) : path.join(__dirname, "../waifu2x")
+        let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
@@ -152,7 +152,9 @@ export default class Waifu2x {
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
             command += ` --model-dir "${options.modelDir}"`
         }
+        console.log(command)
         const child = child_process.exec(command)
+        child.stderr.on("data", console.log)
         let stopped = false
         const poll = async () => {
             if (action() === "stop") {
