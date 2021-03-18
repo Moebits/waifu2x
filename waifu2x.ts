@@ -152,9 +152,7 @@ export default class Waifu2x {
             if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
             command += ` --model-dir "${options.modelDir}"`
         }
-        console.log(command)
         const child = child_process.exec(command)
-        child.stderr.on("data", console.log)
         let stopped = false
         const poll = async () => {
             if (action() === "stop") {
