@@ -271,9 +271,11 @@ export default class Waifu2x {
     private static findMatchingSettings = (dest: string, options: any) => {
         let i = 1
         let newDest = dest
-        const settings = JSON.parse(fs.readFileSync(`${newDest}/settings.json`, "utf8"))
-        if (JSON.stringify(settings) === JSON.stringify(options)) {
-            return newDest
+        if (fs.existsSync(newDest)) {  
+            const settings = JSON.parse(fs.readFileSync(`${newDest}/settings.json`, "utf8"))
+            if (JSON.stringify(settings) === JSON.stringify(options)) {
+                return newDest
+            }
         }
         newDest = `${dest}_${i}`
         while (fs.existsSync(newDest) || i < 10) {
