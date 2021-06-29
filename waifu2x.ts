@@ -338,8 +338,8 @@ export default class Waifu2x {
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
+        let cancel = false
         if (options.scale !== 1) {
-            let cancel = false
             let counter = resume
             let total = frameArray.length
             let queue: string[][] = []
@@ -367,7 +367,7 @@ export default class Waifu2x {
         }
         const finalDest = path.join(folder, image)
         await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparency)
-        Waifu2x.removeDirectory(frameDest)
+        if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest)
     }
 
@@ -463,8 +463,8 @@ export default class Waifu2x {
         let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png")
         frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
+        let cancel = false
         if (options.scale !== 1) {
-            let cancel = false
             let counter = resume
             let total = frameArray.length
             let queue: string[][] = []
@@ -526,7 +526,7 @@ export default class Waifu2x {
             .save(finalDest)
             .on("end", () => resolve())
         })
-        Waifu2x.removeDirectory(frameDest)
+        if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest)
     }
 
