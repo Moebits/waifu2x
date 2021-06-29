@@ -94,7 +94,7 @@ let totalProgress = (current: number, total: number) => {
 
 #### Resuming GIFs/Videos
 
-If the program is terminated in the middle of upscaling a GIF or video, assuming that you provide the same options and that you didn't delete the frames folder, it will resume where it left off. This is useful for upscaling large GIFs/Videos in multiple sittings.
+If the program is terminated in the middle of upscaling a GIF or video, assuming that you provide the same options and that you didn't delete the frames folder, it will resume where it left off. This is useful for upscaling large GIFs/videos in multiple sittings.
 
 #### Waifu2xFormats
 ```ts
