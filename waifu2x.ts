@@ -268,6 +268,25 @@ export default class Waifu2x {
         return newDest
     }
 
+    private static findMatchingSettings = (dest: string, options: any) => {
+        let i = 1
+        let newDest = dest
+        const settings = JSON.parse(fs.readFileSync(`${newDest}/settings.json`, "utf8"))
+        if (JSON.stringify(settings) === JSON.stringify(options)) {
+            return newDest
+        }
+        newDest = `${dest}_${i}`
+        while (fs.existsSync(newDest)) {
+            const settings = JSON.parse(fs.readFileSync(`${newDest}/settings.json`, "utf8"))
+            if (JSON.stringify(settings) === JSON.stringify(options)) {
+                return newDest
+            }
+            i++
+            newDest = `${dest}_${i}`
+        }
+        return null
+    }
+
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
@@ -279,11 +298,24 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
-        if (fs.existsSync(frameDest)) frameDest = Waifu2x.newDest(frameDest)
-        fs.mkdirSync(frameDest, {recursive: true})
+        let resume = 0
+        if (fs.existsSync(frameDest)) {
+            const matching = Waifu2x.findMatchingSettings(frameDest, options)
+            if (matching) {
+                frameDest = matching
+                resume = fs.readdirSync(`${frameDest}/upscaled`).length
+            } else {
+                frameDest = Waifu2x.newDest(frameDest)
+                fs.mkdirSync(frameDest, {recursive: true})
+                fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+            }
+        } else {
+            fs.mkdirSync(frameDest, {recursive: true})
+            fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+        }
         const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
         let step = Math.ceil(frames.length / constraint)
-        const frameArray: string[] = []
+        let frameArray: string[] = []
         let delayArray: number[] = []
         async function downloadFrames(frames: any) {
             const promiseArray = []
@@ -304,10 +336,12 @@ export default class Waifu2x {
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             let cancel = false
-            let counter = 0
+            let counter = resume
             let total = frameArray.length
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
+            frameArray = frameArray.slice(resume)
+            delayArray = delayArray.slice(resume)
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
             if (progress) progress(counter++, total)
             for (let i = 0; i < queue.length; i++) {
@@ -388,33 +422,50 @@ export default class Waifu2x {
         let duration = await Waifu2x.parseDuration(source, options.ffmpegPath)
         if (!options.framerate) options.framerate = await Waifu2x.parseFramerate(source, options.ffmpegPath)
         let frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
-        if (fs.existsSync(frameDest)) frameDest = Waifu2x.newDest(frameDest)
-        fs.mkdirSync(frameDest, {recursive: true})
+        let resume = 0
+        if (fs.existsSync(frameDest)) {
+            const matching = Waifu2x.findMatchingSettings(frameDest, options)
+            if (matching) {
+                frameDest = matching
+                resume = fs.readdirSync(`${frameDest}/upscaled`).length
+            } else {
+                frameDest = Waifu2x.newDest(frameDest)
+                fs.mkdirSync(frameDest, {recursive: true})
+                fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+            }
+        } else {
+            fs.mkdirSync(frameDest, {recursive: true})
+            fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+        }
         let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-        await new Promise<void>((resolve) => {
-            ffmpeg(source).outputOptions([...framerate])
-            .save(`${frameDest}/frame%d.png`)
-            .on("end", () => resolve())
-        })
         let audio = `${frameDest}/audio.wav`
-        await new Promise<void>((resolve, reject) => {
-            ffmpeg(source).outputOptions("-bitexact").save(audio)
-            .on("end", () => resolve())
-            .on("error", () => reject())
-        }).catch(() => audio = "")
+        if (resume === 0) {
+            await new Promise<void>((resolve) => {
+                ffmpeg(source).outputOptions([...framerate])
+                .save(`${frameDest}/frame%d.png`)
+                .on("end", () => resolve())
+            })
+            await new Promise<void>((resolve, reject) => {
+                ffmpeg(source).outputOptions("-bitexact").save(audio)
+                .on("end", () => resolve())
+                .on("error", () => reject())
+            }).catch(() => audio = "")
+        }
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
         let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png")
+        frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames: string[] = []
         if (options.scale !== 1) {
             let cancel = false
-            let counter = 0
+            let counter = resume
             let total = frameArray.length
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
+            frameArray = frameArray.slice(resume)
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
             if (progress) progress(counter++, total)
             for (let i = 0; i < queue.length; i++) {
