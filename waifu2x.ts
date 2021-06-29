@@ -276,7 +276,7 @@ export default class Waifu2x {
             return newDest
         }
         newDest = `${dest}_${i}`
-        while (fs.existsSync(newDest) && i < 10) {
+        while (fs.existsSync(newDest) || i < 10) {
             if (fs.existsSync(newDest)) {    
                 const settings = JSON.parse(fs.readFileSync(`${newDest}/settings.json`, "utf8"))
                 if (JSON.stringify(settings) === JSON.stringify(options)) {
