@@ -345,7 +345,6 @@ export default class Waifu2x {
             let queue: string[][] = []
             if (!options.parallelFrames) options.parallelFrames = 1
             frameArray = frameArray.slice(resume)
-            delayArray = delayArray.slice(resume)
             while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
             if (progress) progress(counter++, total)
             for (let i = 0; i < queue.length; i++) {
