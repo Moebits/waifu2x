@@ -168,13 +168,15 @@ export default class Waifu2x {
             if (!stopped) poll()
         }
         if (action) poll()
+        let error = ""
         await new Promise<void>((resolve, reject) => {
-            child.stderr.on("data", (chunk) => console.log(chunk))
+            child.stderr.on("data", (chunk) => error += chunk)
             child.on("close", () => {
                 stopped = true
                 resolve()
             })
         })
+        if (error) return Promise.reject(error)
         return path.normalize(destPath) as string
     }
 
