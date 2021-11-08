@@ -136,7 +136,10 @@ export default class Waifu2x {
         let destPath = path.join(folder, image)
         const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath) : path.join(__dirname, "../waifu2x")
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
-        if (process.platform === "darwin") program = `cd "${absolute}" && waifu2x-converter-cpp.app`
+        if (process.platform === "darwin") {
+            fs.chmodSync(`${absolute}/waifu2x-converter-cpp.app`, "777")
+            program = `cd "${absolute}" && waifu2x-converter-cpp.app`
+        }
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
