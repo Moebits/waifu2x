@@ -1,12 +1,12 @@
-import * as util from "util"
-import * as fs from "fs"
+import util from "util"
+import fs from "fs"
 import {imageSize} from "image-size"
-import * as ffmpeg from "fluent-ffmpeg"
-import * as path from "path"
-import * as child_process from "child_process"
-import * as GifEncoder from "gif-encoder"
-import * as getPixels from "get-pixels"
-import * as gifFrames from "gif-frames"
+import ffmpeg from "fluent-ffmpeg"
+import path from "path"
+import child_process from "child_process"
+import GifEncoder from "gif-encoder"
+import getPixels from "get-pixels"
+import gifFrames from "gif-frames"
 
 const exec = util.promisify(child_process.exec)
 
@@ -136,6 +136,7 @@ export default class Waifu2x {
         let destPath = path.join(folder, image)
         const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath) : path.join(__dirname, "../waifu2x")
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && waifu2x-converter-cpp.app`
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
         if (options.scale) command +=  ` --scale-ratio ${options.scale}`
