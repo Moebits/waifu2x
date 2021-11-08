@@ -138,7 +138,7 @@ export default class Waifu2x {
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
         if (process.platform === "darwin") {
             fs.chmodSync(`${absolute}/waifu2x-converter-cpp.app`, "777")
-            program = `cd "${absolute}" && waifu2x-converter-cpp.app`
+            program = `cd "${absolute}" && waifu2x-converter-cpp`
         }
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
         if (options.noise) command += ` --noise-level ${options.noise}`
@@ -168,7 +168,8 @@ export default class Waifu2x {
             if (!stopped) poll()
         }
         if (action) poll()
-        await new Promise<void>((resolve) => {
+        await new Promise<void>((resolve, reject) => {
+            child.stderr.on("data", (chunk) => console.log(chunk))
             child.on("close", () => {
                 stopped = true
                 resolve()
