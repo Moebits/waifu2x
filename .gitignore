@@ -2,3 +2,4 @@
 node_modules
 images
 dist
+.DS_Store
