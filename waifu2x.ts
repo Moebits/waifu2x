@@ -114,7 +114,7 @@ export default class Waifu2x {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
             folder = path.join(local, folder)
         }
-        return path.normalize(`${folder}/${image}`)
+        return path.normalize(`${folder}/${image}`).replace(/\\/g, "/")
     }
 
     private static timeout = async (ms: number) => {
@@ -134,7 +134,7 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let destPath = path.join(folder, image)
-        const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath) : path.join(__dirname, "../waifu2x")
+        const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
@@ -174,7 +174,7 @@ export default class Waifu2x {
             })
         })
         if (error) return Promise.reject(error)
-        return path.normalize(destPath) as string
+        return path.normalize(destPath).replace(/\\/g, "/") as string
     }
 
     private static recursiveSearch = (dir: string) => {
@@ -371,7 +371,7 @@ export default class Waifu2x {
         const finalDest = path.join(folder, image)
         await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparency)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
-        return path.normalize(finalDest)
+        return path.normalize(finalDest).replace(/\\/g, "/")
     }
 
     public static upscaleGIFs = async (sourceFolder: string, destFolder?: string, options?: Waifu2xGIFOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
@@ -530,7 +530,7 @@ export default class Waifu2x {
             .on("end", () => resolve())
         })
         if (!cancel) Waifu2x.removeDirectory(frameDest)
-        return path.normalize(finalDest)
+        return path.normalize(finalDest).replace(/\\/g, "/")
     }
 
     public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
