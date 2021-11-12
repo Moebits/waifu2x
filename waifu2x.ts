@@ -133,7 +133,7 @@ export default class Waifu2x {
             sourcePath = path.join(local, source)
             folder = path.join(local, folder)
         }
-        let destPath = path.join(folder, image)
+        let destPath = path.join(folder, image).replace(/\\/g, "/")
         const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
