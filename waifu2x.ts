@@ -178,7 +178,7 @@ export default class Waifu2x {
                 await Waifu2x.convertFromWebp(sourcePath, destPath, options.webpPath)
                 sourcePath = destPath
             } catch {
-                return Promise.reject("animated webp")
+                return "animated webp"
             }
         }
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
