@@ -139,6 +139,7 @@ export interface Waifu2xOptions {
     waifu2xPath?: string
     limit?: number
     parallelFrames?: number
+    webpPath?: string
 }
 ```
 
@@ -150,6 +151,16 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     reverse?: boolean
     cumulative?: boolean
     transparency?: boolean
+}
+```
+
+#### Waifu2xAnimatedWebpOptions
+```ts
+export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
+    quality?: number
+    speed?: number
+    reverse?: boolean
+    webpPath?: string
 }
 ```
 

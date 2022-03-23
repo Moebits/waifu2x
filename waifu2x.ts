@@ -46,6 +46,7 @@ export interface Waifu2xOptions {
     modelDir?: string
     rename?: string
     waifu2xPath?: string
+    webpPath?: string
     limit?: number
     parallelFrames?: number
 }
@@ -56,6 +57,13 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     reverse?: boolean
     cumulative?: boolean
     transparency?: boolean
+}
+
+export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
+    quality?: number
+    speed?: number
+    reverse?: boolean
+    webpPath?: string
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -121,6 +129,34 @@ export default class Waifu2x {
         return new Promise((resolve) => setTimeout(resolve, ms))
     }
 
+    public static convertToWebp = async (source: string, dest: string, webpPath?: string, quality?: number) => {
+        if (!quality) quality = 75
+        const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        let program = `cd "${absolute}" && cwebp.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && ./cwebp.app`
+        let command = `${program} -q ${quality} "${source}" -o "${dest}"`
+        const child = child_process.exec(command)
+        await new Promise<void>((resolve, reject) => {
+            child.on("close", () => resolve())
+        })
+        return dest
+    }
+
+    public static convertFromWebp = async (source: string, dest: string, webpPath?: string) => {
+        const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        let program = `cd "${absolute}" && dwebp.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && ./dwebp.app`
+        let command = `${program} "${source}" -o "${dest}"`
+        const child = child_process.exec(command)
+        let error = ""
+        await new Promise<void>((resolve, reject) => {
+            child.stderr.on("data", (chunk) => error += chunk)
+            child.on("close", () => resolve())
+        })
+        if (error.includes("animated WebP")) return Promise.reject(error)
+        return dest
+    }
+
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, action?: () => "stop" | void) => {
         if (!options) options = {}
         if (!dest) dest = "./"
@@ -135,6 +171,16 @@ export default class Waifu2x {
         }
         let destPath = path.join(folder, image).replace(/\\/g, "/")
         const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        const buffer = fs.readFileSync(sourcePath)
+        const dimensions = imageSize(buffer)
+        if (dimensions.type === "webp") {
+            try {
+                await Waifu2x.convertFromWebp(sourcePath, destPath, options.webpPath)
+                sourcePath = destPath
+            } catch {
+                return Promise.reject("animated webp")
+            }
+        }
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
         let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
@@ -174,6 +220,9 @@ export default class Waifu2x {
             })
         })
         if (error) return Promise.reject(error)
+        if (path.extname(destPath) === ".webp") {
+            await Waifu2x.convertToWebp(destPath, destPath, options.webpPath, options.jpgWebpQuality)
+        }
         return path.normalize(destPath).replace(/\\/g, "/") as string
     }
 
@@ -386,6 +435,125 @@ export default class Waifu2x {
             if (!fileMap[i]) break
             try {
                 const ret = await Waifu2x.upscaleGIF(fileMap[i], destFolder, options, progress)
+                const stop = totalProgress ? totalProgress(i + 1, options.limit) : false
+                retArray.push(ret)
+                if (stop) break
+            } catch (err) {
+                continue
+            }
+        }
+        return retArray
+    }
+
+    private static dumpWebpFrames = async (source: string, frameDest?: string, webpPath?: string) => {
+        const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        let program = `cd "${absolute}" && anim_dump.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && ./anim_dump.app`
+        let command = `${program} -folder "${frameDest}" -prefix "frame" "${source}"`
+        const child = child_process.exec(command)
+        await new Promise<void>((resolve, reject) => {
+            child.on("close", () => resolve())
+        })
+        return fs.readdirSync(frameDest).sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        .filter((s) => s !== "settings.json")
+    }
+
+    private static encodeAnimatedWebp = async (files: string[], dest: string, webpPath?: string) => {
+        const frames = files.map((f) => `"${f}" -d 100`).join(" ")
+        const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        let program = `cd "${absolute}" && img2webp.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && ./img2webp.app`
+        let command = `${program} -loop "0" ${frames} -o "${dest}"`
+        const child = child_process.exec(command)
+        let error = ""
+        await new Promise<void>((resolve, reject) => {
+            child.stderr.on("data", (chunk) => error += chunk)
+            child.on("close", () => resolve())
+        })
+        return dest
+    }
+
+    public static upscaleAnimatedWebp = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
+        if (!options) options = {}
+        if (!dest) dest = "./"
+        let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
+        if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
+            let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
+            folder = path.join(local, folder)
+            source = path.join(local, source)
+        }
+        let frameDest = `${folder}/${path.basename(source, path.extname(source))}Frames`
+        let resume = 0
+        if (fs.existsSync(frameDest)) {
+            const matching = Waifu2x.findMatchingSettings(frameDest, options)
+            if (matching) {
+                frameDest = matching
+                resume = fs.readdirSync(`${frameDest}/upscaled`).length
+            } else {
+                frameDest = Waifu2x.newDest(frameDest)
+                fs.mkdirSync(frameDest, {recursive: true})
+                fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+            }
+        } else {
+            fs.mkdirSync(frameDest, {recursive: true})
+            fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
+        }
+        let frames = await Waifu2x.dumpWebpFrames(source, frameDest, options.webpPath)
+        const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
+        let step = Math.ceil(frames.length / constraint)
+        let frameArray: string[] = []
+        for (let i = 0; i < frames.length; i += step) {
+            frameArray.push(`${frameDest}/${frames[i]}`)
+        }
+        // if (options.speed < 1) delayArray = delayArray.map((n) => n / options.speed)
+        const upScaleDest = `${frameDest}/upscaled`
+        if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
+        options.rename = ""
+        let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
+        let cancel = false
+        if (options.scale !== 1) {
+            let counter = resume
+            let total = frameArray.length
+            let queue: string[][] = []
+            if (!options.parallelFrames) options.parallelFrames = 1
+            frameArray = frameArray.slice(resume)
+            while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
+            if (progress) progress(counter++, total)
+            for (let i = 0; i < queue.length; i++) {
+                await Promise.all(queue[i].map(async (f) => {
+                    const destPath = await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                    scaledFrames.push(destPath)
+                    const stop = progress ? progress(counter++, total) : false
+                    if (stop) cancel = true
+                }))
+                if (cancel) break
+            }
+        } else {
+            scaledFrames = frameArray
+        }
+        scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        if (options.reverse) {
+            scaledFrames = scaledFrames.reverse()
+            // delayArray = delayArray.reverse()
+        }
+        const finalDest = path.join(folder, image)
+        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest)
+        if (!cancel) Waifu2x.removeDirectory(frameDest)
+        return path.normalize(finalDest).replace(/\\/g, "/")
+    }
+
+    public static upscaleAnimatedWebps = async (sourceFolder: string, destFolder?: string, options?: Waifu2xAnimatedWebpOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
+        if (!options) options = {}
+        const files = fs.readdirSync(sourceFolder)
+        if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
+        const fileMap = files.map((file) => `${sourceFolder}/${file}`)
+        if (!options.limit) options.limit = fileMap.length
+        const retArray: string[] = []
+        if (totalProgress) totalProgress(0, options.limit)
+        for (let i = 0; i < options.limit; i++) {
+            if (!fileMap[i]) break
+            try {
+                const ret = await Waifu2x.upscaleAnimatedWebp(fileMap[i], destFolder, options, progress)
                 const stop = totalProgress ? totalProgress(i + 1, options.limit) : false
                 retArray.push(ret)
                 if (stop) break
