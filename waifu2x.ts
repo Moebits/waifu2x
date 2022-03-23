@@ -98,7 +98,7 @@ export default class Waifu2x {
                 Waifu2x.recursiveRename(fullPath, subFiles, rename)
             } else {
                 const pathSplit = fileNames[i].split(".")
-                const newName = pathSplit[0].split("_")[0] + rename
+                const newName = pathSplit?.[0].split("_")?.[0] + rename
                 const newPath = `${folder}/${newName}.${pathSplit.pop()}`
                 fs.renameSync(fullPath, newPath)
             }
@@ -225,7 +225,7 @@ export default class Waifu2x {
     private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparency?: boolean) => {
         if (!quality) quality = 10
         return new Promise<void>((resolve) => {
-            const dimensions = imageSize(files[0])
+            const dimensions = imageSize(files?.[0])
             const gif = new GifEncoder(dimensions.width, dimensions.height, {highWaterMark: 5 * 1024 * 1024})
             const file = fs.createWriteStream(dest)
             gif.pipe(file)
@@ -399,21 +399,27 @@ export default class Waifu2x {
     public static parseFramerate = async (file: string, ffmpegPath?: string) => {
         let command = `"${ffmpegPath ? ffmpegPath : "ffmpeg"}" -i "${file}"`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
-        return Number(str.match(/[0-9.]+ (?=fps,)/)[0])
+        const fps = Number(str.match(/[0-9.]+ (?=fps,)/)?.[0])
+        return Number.isNaN(fps) ? 0 : fps
     }
 
     public static parseDuration = async (file: string, ffmpegPath?: string) => {
         let command = `"${ffmpegPath ? ffmpegPath : "ffmpeg"}" -i "${file}"`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
         const tim =  str.match(/(?<=Duration: )(.*?)(?=,)/)[0].split(":").map((n: string) => Number(n))
-        return (tim[0] * 60 * 60) + (tim[1] * 60) + tim[2]
+        const dur =  (tim?.[0] * 60 * 60) + (tim?.[1] * 60) + tim?.[2]
+        return Number.isNaN(dur) ? 0 : dur
     }
 
     public static parseResolution = async (file: string, ffmpegPath?: string) => {
         let command = `"${ffmpegPath ? ffmpegPath : "ffmpeg"}" -i "${file}"`
         const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
         const dim = str.match(/(?<= )\d+x\d+(?= |,)/)[0].split("x")
-        return {width: Number(dim[0]), height: Number(dim[1])}
+        let width = Number(dim?.[0])
+        let height = Number(dim?.[1])
+        if (Number.isNaN(width)) width = 0
+        if (Number.isNaN(height)) height = 0
+        return {width, height}
     }
 
     public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean) => {
@@ -520,8 +526,9 @@ export default class Waifu2x {
                 .on("end", () => resolve())
             })
         }
-        let newDuration = await Waifu2x.parseDuration(tempDest)
+        let newDuration = await Waifu2x.parseDuration(tempDest, options.ffmpegPath)
         let factor = duration / options.speed / newDuration
+        if (Number.isNaN(factor)) factor = 1 
         let filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v]`, "-map", "[v]"]
         if (audio) filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
         let error = ""
