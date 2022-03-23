@@ -524,11 +524,17 @@ export default class Waifu2x {
         let factor = duration / options.speed / newDuration
         let filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v]`, "-map", "[v]"]
         if (audio) filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
-        await new Promise<void>((resolve) => {
+        let error = ""
+        await new Promise<void>((resolve, reject) => {
             ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...filter])
             .save(finalDest)
             .on("end", () => resolve())
+            .on("error", (e) => {
+                error = e
+                resolve()
+            })
         })
+        if (error) return Promise.reject(error)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
