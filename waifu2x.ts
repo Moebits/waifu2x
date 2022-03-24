@@ -86,7 +86,7 @@ export default class Waifu2x {
         fs.chmodSync(`${webp}/dwebp.app`, "777")
         fs.chmodSync(`${webp}/img2webp.app`, "777")
     }
-    
+
     private static parseFilename = (source: string, dest: string, rename: string) => {
         let [image, folder] = ["", ""]
         if (!dest) {
@@ -548,7 +548,7 @@ export default class Waifu2x {
             // delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest)
+        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest, options.webpPath)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
