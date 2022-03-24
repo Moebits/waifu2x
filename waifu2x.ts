@@ -469,8 +469,9 @@ export default class Waifu2x {
         .filter((s) => s !== "settings.json")
     }
 
-    private static encodeAnimatedWebp = async (files: string[], dest: string, webpPath?: string) => {
-        const frames = files.map((f) => `"${f}" -d 100`).join(" ")
+    private static encodeAnimatedWebp = async (files: string[], dest: string, webpPath?: string, quality?: number) => {
+        if (!quality) quality = 75
+        const frames = files.map((f) => `-d 100 "${f}"`).join(" ")
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && img2webp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./img2webp.app`
@@ -548,7 +549,7 @@ export default class Waifu2x {
             // delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest, options.webpPath)
+        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest, options.webpPath, options.jpgWebpQuality)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
