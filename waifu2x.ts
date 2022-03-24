@@ -76,6 +76,17 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
 }
 
 export default class Waifu2x {
+    public static chmod777 = (waifu2xPath?: string, webpPath?: string) => {
+        if (process.platform === "win32") return
+        const waifu2x = waifu2xPath ? path.normalize(waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        const webp = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        fs.chmodSync(`${waifu2x}/waifu2x-converter-cpp.app`, "777")
+        fs.chmodSync(`${webp}/anim_dump.app`, "777")
+        fs.chmodSync(`${webp}/cwebp.app`, "777")
+        fs.chmodSync(`${webp}/dwebp.app`, "777")
+        fs.chmodSync(`${webp}/img2webp.app`, "777")
+    }
+    
     private static parseFilename = (source: string, dest: string, rename: string) => {
         let [image, folder] = ["", ""]
         if (!dest) {
