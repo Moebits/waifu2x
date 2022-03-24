@@ -85,6 +85,7 @@ export default class Waifu2x {
         fs.chmodSync(`${webp}/cwebp.app`, "777")
         fs.chmodSync(`${webp}/dwebp.app`, "777")
         fs.chmodSync(`${webp}/img2webp.app`, "777")
+        fs.chmodSync(`${webp}/webpmux.app`, "777")
     }
 
     private static parseFilename = (source: string, dest: string, rename: string) => {
@@ -188,8 +189,8 @@ export default class Waifu2x {
             try {
                 await Waifu2x.convertFromWebp(sourcePath, destPath, options.webpPath)
                 sourcePath = destPath
-            } catch {
-                return "animated webp"
+            } catch (error) {
+                return Promise.reject("animated webp")
             }
         }
         let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
@@ -469,9 +470,23 @@ export default class Waifu2x {
         .filter((s) => s !== "settings.json")
     }
 
-    private static encodeAnimatedWebp = async (files: string[], dest: string, webpPath?: string, quality?: number) => {
+    private static parseWebpDelays = async (source: string, webpPath?: string) => {
+        const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
+        let program = `cd "${absolute}" && webpmux.exe`
+        if (process.platform === "darwin") program = `cd "${absolute}" && ./webpmux.app`
+        let command = `${program} -info "${source}"`
+        const child = child_process.exec(command)
+        let data = ""
+        await new Promise<void>((resolve, reject) => {
+            child.stdout.on("data", (chunk) => data += chunk)
+            child.on("close", () => resolve())
+        })
+        return data.split("\n").slice(5).map((r) => parseInt(r.split(/ +/g)[7])).filter(Boolean)
+    }
+
+    private static encodeAnimatedWebp = async (files: string[], delays: number[], dest: string, webpPath?: string, quality?: number) => {
         if (!quality) quality = 75
-        const frames = files.map((f) => `-d 100 "${f}"`).join(" ")
+        const frames = files.map((f, i) => `-d ${delays[i]} "${f}"`).join(" ")
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && img2webp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./img2webp.app`
@@ -511,13 +526,16 @@ export default class Waifu2x {
             fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
         }
         let frames = await Waifu2x.dumpWebpFrames(source, frameDest, options.webpPath)
+        let delays = await Waifu2x.parseWebpDelays(source, options.webpPath)
         const constraint = options.speed > 1 ? frames.length / options.speed : frames.length
         let step = Math.ceil(frames.length / constraint)
         let frameArray: string[] = []
+        let delayArray: number[] = []
         for (let i = 0; i < frames.length; i += step) {
             frameArray.push(`${frameDest}/${frames[i]}`)
+            delayArray.push(delays[i])
         }
-        // if (options.speed < 1) delayArray = delayArray.map((n) => n / options.speed)
+        if (options.speed < 1) delayArray = delayArray.map((n) => n / options.speed)
         const upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
@@ -546,10 +564,10 @@ export default class Waifu2x {
         scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         if (options.reverse) {
             scaledFrames = scaledFrames.reverse()
-            // delayArray = delayArray.reverse()
+            delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeAnimatedWebp(scaledFrames, finalDest, options.webpPath, options.jpgWebpQuality)
+        await Waifu2x.encodeAnimatedWebp(scaledFrames, delayArray, finalDest, options.webpPath, options.jpgWebpQuality)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
