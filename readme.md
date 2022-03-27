@@ -42,7 +42,7 @@ let progress = (current: number, total: number) => {
 }
 ```
 
-#### Upscaling Gifs
+#### Upscaling Gifs / Animated Webps
 ```ts
 /*Grab some popcorn, because this is going to take centuries without a high-end gpu. The speed parameter
 changes the speed of the gif by removing frames or increasing the delay between frames. The reverse parameter
@@ -56,6 +56,10 @@ await waifu2x.upscaleGIFs("./images/gifs", "./images/gifs/upscaled", {speed: 1.0
 /*By default, only one frame is upscaled at a time, but you can change this with the option parallelFrames. Note that setting this
 number too high can freeze your computer if it runs out of CPU/memory.*/
 await waifu2x.upscaleGIF("./images/gifs/parallel.gif", "./images/gifs/parallel.gif", {parallelFrames: 3}, progress)
+
+/*New: Support for animated webps. It has the same parameters as the upscaleGIF function, pretty much. You can tell that a webp is
+animated because it will reject from the regular upscaleImage() function.*/
+await waifu2x.upscaleAnimatedWebp("./images/webps/mywebp.webp", "./images/webps/mywebp2x.webp", {scale: 2}, progress)
 
 /*You can pass callback functions to both to track progress. You can also return true in order to stop early.*/
 let progress = (current: number, total: number) => {
