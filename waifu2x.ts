@@ -56,7 +56,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     cumulative?: boolean
-    transparency?: boolean
+    transparentColor?: string
 }
 
 export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
@@ -283,7 +283,11 @@ export default class Waifu2x {
         return retArray
     }
 
-    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparency?: boolean) => {
+    private static parseTransparentColor = (color: string) => {
+        return Number(`0x${color.replace(/^#/, "")}`)
+    }
+
+    private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparentColor?: string) => {
         if (!quality) quality = 10
         return new Promise<void>((resolve) => {
             const dimensions = imageSize(files?.[0])
@@ -293,12 +297,11 @@ export default class Waifu2x {
             gif.setQuality(quality)
             gif.setRepeat(0)
             gif.writeHeader()
-            if (transparency) gif.setTransparent(true)
+            if (transparentColor) gif.setTransparent(Waifu2x.parseTransparentColor(transparentColor))
             let counter = 0
 
             const addToGif = (frames: string[]) => {
                 getPixels(frames[counter], function(err: Error, pixels: any) {
-                    gif.read(1024 * 1024)
                     gif.setDelay(10 * delays[counter])
                     gif.addFrame(pixels.data)
                     if (counter >= frames.length - 1) {
@@ -359,7 +362,7 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
-        if (!options.cumulative) options.cumulative = false
+        if (!options.cumulative) options.cumulative = true
         const frames = await gifFrames({url: source, frames: "all", outputType: "png", cumulative: options.cumulative})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
@@ -430,7 +433,7 @@ export default class Waifu2x {
             delayArray = delayArray.reverse()
         }
         const finalDest = path.join(folder, image)
-        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparency)
+        await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparentColor)
         if (!cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }

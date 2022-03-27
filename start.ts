@@ -29,6 +29,6 @@ import waifu2x from "./waifu2x"
     // const result = await waifu2x.upscaleVideo("/Users/chris/Downloads/159669460-64a7bfa5-0616-4ede-8124-0df239260ca2.mp4", "/Users/chris/Downloads/test/159669460-64a7bfa5-0616-4ede-8124-0df239260ca22x.mp4", options, progress)
     // const result = await waifu2x.upscaleGIF("./images/gifs/fbi.gif", "./images/gifs/fbi2x.gif", {scale: 1.1, parallelFrames: 2}, progress)
     // const result = await waifu2x.upscaleImage("/Users/chris/Downloads/bad.jpg", "/Users/chris/Downloads/test/bad2x.webp")
-    const result = await waifu2x.upscaleAnimatedWebp("/Users/chris/Downloads/awebp.webp", "/Users/chris/Downloads/test/awebp2x.webp", options)
+    const result = await waifu2x.upscaleAnimatedWebp("/Users/chris/Downloads/awebp.webp", "/Users/chris/Downloads/test/awebp2x.webp", options, progress)
     console.log(result)
 })()
