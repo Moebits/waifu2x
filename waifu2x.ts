@@ -55,7 +55,6 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    cumulative?: boolean
     transparentColor?: string
 }
 
@@ -362,8 +361,7 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
-        if (!options.cumulative) options.cumulative = true
-        const frames = await gifFrames({url: source, frames: "all", outputType: "png", cumulative: options.cumulative})
+        const frames = await gifFrames({url: source, frames: "all", outputType: "png"})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
