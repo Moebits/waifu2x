@@ -652,6 +652,7 @@ export default class Waifu2x {
         let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+        let colorFlags = ["-color_primaries", "5", "-colorspace", "5", "-color_trc", "6"]
         let audio = `${frameDest}/audio.wav`
         if (resume === 0) {
             await new Promise<void>((resolve) => {
@@ -702,7 +703,7 @@ export default class Waifu2x {
         if (audio) {
             let filter: string[] = ["-vf", `${crop}`]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(`${upScaleDest}/${image}`)
                 .on("end", () => resolve())
             })
@@ -712,7 +713,7 @@ export default class Waifu2x {
                 let audioSpeed = options.pitch ? `asetrate=44100*${options.speed},aresample=44100` : `atempo=${options.speed}`
                 filter = ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]${audioSpeed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
                 await new Promise<void>((resolve) => {
-                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
                     .save(tempDest)
                     .on("end", () => resolve())
                 })
@@ -720,7 +721,7 @@ export default class Waifu2x {
         } else {
             let filter = ["-filter_complex", `[0:v]${crop},setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.png`).outputOptions([...framerate, ...codec, ...crf, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.png`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(tempDest)
                 .on("end", () => resolve())
             })
@@ -732,7 +733,7 @@ export default class Waifu2x {
         if (audio) filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
         let error = ""
         await new Promise<void>((resolve, reject) => {
-            ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...filter])
+            ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
             .save(finalDest)
             .on("end", () => resolve())
             .on("error", (e) => {
