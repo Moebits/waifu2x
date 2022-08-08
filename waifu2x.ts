@@ -652,7 +652,7 @@ export default class Waifu2x {
         let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
-        let colorFlags = ["-color_primaries", "5", "-colorspace", "5", "-color_trc", "6"]
+        let colorFlags = ["-color_primaries", "bt709", "-colorspace", "bt709", "-color_trc", "bt709"]
         let audio = `${frameDest}/audio.wav`
         if (resume === 0) {
             await new Promise<void>((resolve) => {
