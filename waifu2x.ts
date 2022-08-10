@@ -72,6 +72,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     reverse?: boolean
     pitch?: boolean
     ffmpegPath?: string
+    sdColorSpace?: boolean
 }
 
 export default class Waifu2x {
@@ -653,6 +654,7 @@ export default class Waifu2x {
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
         let colorFlags = ["-color_primaries", "bt709", "-colorspace", "bt709", "-color_trc", "bt709"]
+        if (options.sdColorSpace) colorFlags = ["-color_primaries", "smpte170m", "-colorspace", "smpte170m", "-color_trc", "smpte170m"]
         let audio = `${frameDest}/audio.wav`
         if (resume === 0) {
             await new Promise<void>((resolve) => {
