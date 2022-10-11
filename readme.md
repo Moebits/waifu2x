@@ -11,6 +11,9 @@
 This package uses the pre-built Windows x64 and macOS arm64 binaries from [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp) in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
 to have [**ffmpeg**](https://ffmpeg.org/) installed. For a gui version, you can also see my [Waifu2x GUI app](https://github.com/Tenpi/Waifu2x-GUI).
 
+**New** - Added the [**Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN) upscaler which is faster and gives better results than waifu2x. To use it,
+set upscaler to "real-esrgan" in the options. When using Real-ESRGAN, you can only provide scale factors from 2-4 and all other waifu2x specific settings are ignored. At 4x upscale it uses the Anime4x model which is a bit slower, but provides better results, so it is recommended to upscale at 4x when using Real-ESRGAN.
+
 ### Insall
 ```ts
 npm install waifu2x
@@ -40,6 +43,13 @@ let progress = (current: number, total: number) => {
   console.log(`Current Image: ${current} Total Images: ${total}`)
   if (current === 5) return true
 }
+
+/*Percentage progress is Real-ESRGAN only. Return true to stop early.*/
+let progress = (percent: number) => {
+  console.log(`Percent: ${percent}`)
+  if (percent > 50) return true
+}
+await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.png", {scale: 4, upscaler: "real-esrgan"}, progress)
 ```
 
 #### Upscaling Gifs / Animated Webps
@@ -144,6 +154,8 @@ export interface Waifu2xOptions {
     limit?: number
     parallelFrames?: number
     webpPath?: string
+    upscaler?: string
+    esrganPath?: string
 }
 ```
 
@@ -190,6 +202,6 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
 
 `laffey2x.png`
 
-<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey2x.png" />
+<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey2x.jpg" />
 
 </details>

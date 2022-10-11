@@ -49,6 +49,8 @@ export interface Waifu2xOptions {
     webpPath?: string
     limit?: number
     parallelFrames?: number
+    upscaler?: string
+    esrganPath?: string
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -76,11 +78,13 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
 }
 
 export default class Waifu2x {
-    public static chmod777 = (waifu2xPath?: string, webpPath?: string) => {
+    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string) => {
         if (process.platform === "win32") return
         const waifu2x = waifu2xPath ? path.normalize(waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        const esrgan = esrganPath ? path.normalize(esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
         const webp = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         fs.chmodSync(`${waifu2x}/waifu2x-converter-cpp.app`, "777")
+        fs.chmodSync(`${esrgan}/mac/realesrgan-ncnn-vulkan`, "777")
         fs.chmodSync(`${webp}/anim_dump.app`, "777")
         fs.chmodSync(`${webp}/cwebp.app`, "777")
         fs.chmodSync(`${webp}/dwebp.app`, "777")
@@ -169,7 +173,7 @@ export default class Waifu2x {
         return dest
     }
 
-    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, action?: () => "stop" | void) => {
+    public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, progress?: (percent?: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
         if (options.rename === undefined) options.rename = "2x"
@@ -182,7 +186,12 @@ export default class Waifu2x {
             folder = path.join(local, folder)
         }
         let destPath = path.join(folder, image).replace(/\\/g, "/")
-        const absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        let absolute = ""
+        if (options.upscaler === "real-esrgan") {
+            absolute = options.esrganPath ? path.normalize(options.esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
+        } else {
+            absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        }
         const buffer = fs.readFileSync(sourcePath)
         const dimensions = imageSize(buffer)
         if (dimensions.type === "webp") {
@@ -193,28 +202,39 @@ export default class Waifu2x {
                 return Promise.reject("animated webp")
             }
         }
-        let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
-        if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
-        let command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
-        if (options.noise) command += ` --noise-level ${options.noise}`
-        if (options.scale) command +=  ` --scale-ratio ${options.scale}`
-        if (options.mode) command += ` -m ${options.mode}`
-        if (options.pngCompression) command += ` -c ${options.pngCompression}`
-        if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
-        if (options.blockSize) command += ` --block-size ${options.blockSize}`
-        if (options.disableGPU) command += ` --disable-gpu`
-        if (options.forceOpenCL) command += ` --force-OpenCL`
-        if (options.processor) command += ` -p ${options.processor}`
-        if (options.threads) command += ` -j ${options.threads}`
-        if (options.modelDir) {
-            if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
-            if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
-            command += ` --model-dir "${options.modelDir}"`
+        let command = ""
+        if (options.upscaler === "real-esrgan") {
+            let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
+            const ext = path.extname(source).replace(".", "")
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
+            if (options.scale) command +=  ` -s ${options.scale}`
+            if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
+        } else {
+            let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
+            if (options.noise) command += ` --noise-level ${options.noise}`
+            if (options.scale) command +=  ` --scale-ratio ${options.scale}`
+            if (options.mode) command += ` -m ${options.mode}`
+            if (options.pngCompression) command += ` -c ${options.pngCompression}`
+            if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
+            if (options.blockSize) command += ` --block-size ${options.blockSize}`
+            if (options.disableGPU) command += ` --disable-gpu`
+            if (options.forceOpenCL) command += ` --force-OpenCL`
+            if (options.processor) command += ` -p ${options.processor}`
+            if (options.threads) command += ` -j ${options.threads}`
+            if (options.modelDir) {
+                if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
+                if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
+                command += ` --model-dir "${options.modelDir}"`
+            }
+
         }
         const child = child_process.exec(command)
         let stopped = false
         const poll = async () => {
-            if (action() === "stop") {
+            if (progress()) {
                 stopped = true
                 child.stdio.forEach((s) => s.destroy())
                 child.kill("SIGINT")
@@ -222,10 +242,17 @@ export default class Waifu2x {
             await Waifu2x.timeout(1000)
             if (!stopped) poll()
         }
-        if (action) poll()
+        if (progress) poll()
         let error = ""
         await new Promise<void>((resolve, reject) => {
-            child.stderr.on("data", (chunk) => error += chunk)
+            child.stderr.on("data", (chunk) => {
+                if (options.upscaler === "real-esrgan") {
+                    let percent = Number(chunk.replace("%", ""))
+                    if (!Number.isNaN(percent)) progress?.(percent)
+                } else {
+                    error += chunk
+                }
+            })
             child.on("close", () => {
                 stopped = true
                 resolve()
