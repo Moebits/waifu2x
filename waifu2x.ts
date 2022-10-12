@@ -389,7 +389,7 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         if (!options) options = {}
         if (!dest) dest = "./"
-        const frames = await gifFrames({url: source, frames: "all", outputType: "png"})
+        const frames = await gifFrames({url: source, frames: "all", outputType: "jpg"})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -418,9 +418,9 @@ export default class Waifu2x {
         async function downloadFrames(frames: any) {
             const promiseArray = []
             for (let i = 0; i < frames.length; i += step) {
-                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.png`)
+                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.jpg`)
                 frames[i].getImage().pipe(writeStream)
-                frameArray.push(`${frameDest}/frame${i}.png`)
+                frameArray.push(`${frameDest}/frame${i}.jpg`)
                 delayArray.push(frames[i].frameInfo.delay)
                 promiseArray.push(Waifu2x.awaitStream(writeStream))
             }
@@ -686,7 +686,7 @@ export default class Waifu2x {
         if (resume === 0) {
             await new Promise<void>((resolve) => {
                 ffmpeg(source).outputOptions([...framerate])
-                .save(`${frameDest}/frame%d.png`)
+                .save(`${frameDest}/frame%d.jpg`)
                 .on("end", () => resolve())
             })
             await new Promise<void>((resolve, reject) => {
@@ -698,7 +698,7 @@ export default class Waifu2x {
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
-        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".png")
+        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".jpg")
         frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
         let cancel = false
@@ -732,7 +732,7 @@ export default class Waifu2x {
         if (audio) {
             let filter: string[] = ["-vf", `${crop}`]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.png`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.jpg`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(`${upScaleDest}/${image}`)
                 .on("end", () => resolve())
             })
