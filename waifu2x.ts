@@ -150,6 +150,7 @@ export default class Waifu2x {
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && cwebp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./cwebp.app`
+        if (process.platform === "linux") program = `cd "${absolute}" && ./cwebp`
         let command = `${program} -q ${quality} "${source}" -o "${dest}"`
         const child = child_process.exec(command)
         await new Promise<void>((resolve, reject) => {
@@ -162,6 +163,7 @@ export default class Waifu2x {
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && dwebp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./dwebp.app`
+        if (process.platform === "linux") program = `cd "${absolute}" && ./dwebp`
         let command = `${program} "${source}" -o "${dest}"`
         const child = child_process.exec(command)
         let error = ""
@@ -206,6 +208,7 @@ export default class Waifu2x {
         if (options.upscaler === "real-esrgan") {
             let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
+            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realesrgan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
             if (options.scale) command +=  ` -s ${options.scale}`
@@ -213,6 +216,7 @@ export default class Waifu2x {
         } else {
             let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
+            if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-converter-cpp --model-dir "./models_rgb"`
             command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
             if (options.noise) command += ` --noise-level ${options.noise}`
             if (options.scale) command +=  ` --scale-ratio ${options.scale}`
@@ -490,6 +494,7 @@ export default class Waifu2x {
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && anim_dump.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./anim_dump.app`
+        if (process.platform === "linux") program = `cd "${absolute}" && ./anim_dump`
         let command = `${program} -folder "${frameDest}" -prefix "frame" "${source}"`
         const child = child_process.exec(command)
         await new Promise<void>((resolve, reject) => {
@@ -503,6 +508,7 @@ export default class Waifu2x {
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && webpmux.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./webpmux.app`
+        if (process.platform === "linux") program = `cd "${absolute}" && ./webpmux`
         let command = `${program} -info "${source}"`
         const child = child_process.exec(command)
         let data = ""
@@ -519,6 +525,7 @@ export default class Waifu2x {
         const absolute = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         let program = `cd "${absolute}" && img2webp.exe`
         if (process.platform === "darwin") program = `cd "${absolute}" && ./img2webp.app`
+        if (process.platform === "linux") program = `cd "${absolute}" && ./img2webp`
         let command = `${program} -loop "0" ${frames} -o "${dest}"`
         const child = child_process.exec(command)
         let error = ""
