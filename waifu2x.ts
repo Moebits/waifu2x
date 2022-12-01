@@ -701,6 +701,8 @@ export default class Waifu2x {
                 .on("end", () => resolve())
                 .on("error", () => reject())
             }).catch(() => audio = "")
+        } else {
+            if (!fs.existsSync(audio)) audio = ""
         }
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
