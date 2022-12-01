@@ -757,7 +757,7 @@ export default class Waifu2x {
         } else {
             let filter = ["-filter_complex", `[0:v]${crop},setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.png`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.jpg`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(tempDest)
                 .on("end", () => resolve())
             })
