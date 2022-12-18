@@ -58,6 +58,7 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     transparentColor?: string
+    noResume?: boolean
 }
 
 export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
@@ -65,6 +66,7 @@ export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     webpPath?: string
+    noResume?: boolean
 }
 
 export interface Waifu2xVideoOptions extends Waifu2xOptions {
@@ -75,6 +77,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     pitch?: boolean
     ffmpegPath?: string
     sdColorSpace?: boolean
+    noResume?: boolean
 }
 
 export default class Waifu2x {
@@ -464,7 +467,7 @@ export default class Waifu2x {
         }
         const finalDest = path.join(folder, image)
         await Waifu2x.encodeGIF(scaledFrames, delayArray, finalDest, options.quality, options.transparentColor)
-        if (!cancel) Waifu2x.removeDirectory(frameDest)
+        if (options.noResume || !cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
 
@@ -604,7 +607,7 @@ export default class Waifu2x {
         }
         const finalDest = path.join(folder, image)
         await Waifu2x.encodeAnimatedWebp(scaledFrames, delayArray, finalDest, options.webpPath, options.jpgWebpQuality)
-        if (!cancel) Waifu2x.removeDirectory(frameDest)
+        if (options.noResume || !cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
 
@@ -780,7 +783,7 @@ export default class Waifu2x {
             })
         })
         if (error) return Promise.reject(error)
-        if (!cancel) Waifu2x.removeDirectory(frameDest)
+        if (options.noResume || !cancel) Waifu2x.removeDirectory(frameDest)
         return path.normalize(finalDest).replace(/\\/g, "/")
     }
 
