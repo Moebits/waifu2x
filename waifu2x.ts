@@ -295,25 +295,18 @@ export default class Waifu2x {
         return path.normalize(destPath).replace(/\\/g, "/") as string
     }
 
-    private static recursiveSearch = (dir: string) => {
+    private static searchFiles = (dir: string, recursive = false) => {
         const files = fs.readdirSync(dir)
-        let fileMap = files.map((file) => `${dir}/${file}`).filter((f) => fs.lstatSync(f).isFile())
+        const fileMap = files.map((file) => `${dir}/${file}`).filter((f) => fs.lstatSync(f).isFile())
+        if (!recursive) return fileMap
         const dirMap = files.map((file) => `${dir}/${file}`).filter((f) => fs.lstatSync(f).isDirectory())
-        return fileMap.concat(dirMap.flatMap((dirEntry) => Waifu2x.recursiveSearch(dirEntry)))
+        return fileMap.concat(dirMap.flatMap((dirEntry) => Waifu2x.searchFiles(dirEntry, true)))
     }
 
     public static upscaleImages = async (sourceFolder: string, destFolder?: string, options?: Waifu2xOptions, progress?: (current: number, total: number) => void | boolean) => {
         options = {...options}
-        const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
-        let fileMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isFile())
-        const dirMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isDirectory())
-        if (options.recursive) {
-            for (let i = 0; i < dirMap.length; i++) {
-                const search = Waifu2x.recursiveSearch(dirMap[i])
-                fileMap = [...fileMap, ...search]
-            }
-        }
+        const fileMap = Waifu2x.searchFiles(sourceFolder, options?.recursive)
 
         if (!options.limit) options.limit = fileMap.length
         let cancel = false
