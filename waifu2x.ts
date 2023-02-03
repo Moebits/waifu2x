@@ -3,7 +3,7 @@ import fs from "fs"
 import {imageSize} from "image-size"
 import ffmpeg from "fluent-ffmpeg"
 import path from "path"
-import child_process, { ChildProcess } from "child_process"
+import child_process, {ChildProcess} from "child_process"
 import GifEncoder from "gif-encoder"
 import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
@@ -879,7 +879,7 @@ class AsyncSemaphore {
     private capacity: number
     private running: number = 0
 
-    constructor(capacity: number) {
+    public constructor(capacity: number) {
         this.capacity = capacity
     }
 
@@ -919,7 +919,5 @@ class AsyncSemaphore {
         this.running = 0
     }
 }
-
-
 
 module.exports.default = Waifu2x
