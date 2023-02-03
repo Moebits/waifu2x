@@ -338,7 +338,7 @@ export default class Waifu2x {
     }
 
     private static encodeGIF = async (files: string[], delays: number[], dest: string, quality?: number, transparentColor?: string) => {
-        quality = quality ?? 10
+        if (!quality) quality = 10
         return new Promise<void>((resolve) => {
             const dimensions = imageSize(files?.[0])
             const gif = new GifEncoder(dimensions.width, dimensions.height, {highWaterMark: 5 * 1024 * 1024})
