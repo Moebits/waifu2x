@@ -3,7 +3,7 @@ import fs from "fs"
 import {imageSize} from "image-size"
 import ffmpeg from "fluent-ffmpeg"
 import path from "path"
-import child_process from "child_process"
+import child_process, { ChildProcess } from "child_process"
 import GifEncoder from "gif-encoder"
 import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
@@ -84,7 +84,7 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
 
 export default class Waifu2x {
 
-    static processes: child_process.ChildProcess[] = []
+    static processes: ChildProcess[] = []
 
     public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string) => {
         if (process.platform === "win32") return
@@ -138,7 +138,7 @@ export default class Waifu2x {
     }
 
     public static parseDest = (source: string, dest?: string, options?: {rename?: string}) => {
-        if (!options) options = {}
+        options = {...options}
         if (!dest) dest = "./"
         if (options.rename === undefined) options.rename = "2x"
         let {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
@@ -198,8 +198,8 @@ export default class Waifu2x {
     }
 
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, progress?: (percent?: number) => void | boolean) => {
-        options = {...options} || {}
-        dest = dest ?? "./"
+        options = {...options}
+        if (!dest) dest = "./"
         let sourcePath = source
         if (options.rename === undefined) options.rename = "2x"
         let {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
@@ -303,10 +303,9 @@ export default class Waifu2x {
     }
 
     public static upscaleImages = async (sourceFolder: string, destFolder?: string, options?: Waifu2xOptions, progress?: (current: number, total: number) => void | boolean) => {
-        options = {...options} || {}
+        options = {...options}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
-        //isn't this the same as recursiveSearch?
         let fileMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isFile())
         const dirMap = files.map((file) => `${sourceFolder}/${file}`).filter((f) => fs.lstatSync(f).isDirectory())
         if (options.recursive) {
@@ -316,24 +315,24 @@ export default class Waifu2x {
             }
         }
 
-        options.limit = options.limit ?? fileMap.length
+        if (!options.limit) options.limit = fileMap.length
         let cancel = false
         let counter = 1
         let total = fileMap.length
         if (progress) progress(0, total)
-        const sem = new AsyncSemaphore(options.parallelFrames ?? 1)
+        const sem = new AsyncSemaphore(options.parallelFrames || 1)
         const promises = fileMap.map(async (f) => {
             return sem.add(async () => {
                 if(cancel) return null
                 if(counter >= options.limit) cancel = true
-                try{
+                try {
                     const ret = await Waifu2x.upscaleImage(f, destFolder, options)
                     const stop = progress ? progress(counter++, total) : false
                     if (stop) cancel = true
                     return ret
-                }catch(e){
+                } catch (error) {
                     cancel = true
-                    throw e
+                    throw error
                 }
             })
         })
@@ -417,8 +416,8 @@ export default class Waifu2x {
     }
 
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
-        options = {...options} ?? {}
-        dest = dest || "./" //maybe use ?? instead
+        options = {...options}
+        if (!dest) dest = "./"
         const frames = await gifFrames({url: source, frames: "all", outputType: "jpg"})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
@@ -468,21 +467,20 @@ export default class Waifu2x {
         if (options.scale !== 1) {
             let counter = resume
             let total = frameArray.length
-            if (!options.parallelFrames) options.parallelFrames = 1
             frameArray = frameArray.slice(resume)
-            const sem = new AsyncSemaphore(options.parallelFrames ?? 1)
+            const sem = new AsyncSemaphore(options.parallelFrames || 1)
             if (progress) progress(counter++, total)
             const promises = frameArray.map(async (f) => {
                 return await sem.add(async () => {
                     if(cancel) return null
-                    try{
+                    try {
                         const destPath = await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
                         const stop = progress ? progress(counter++, total) : false
                         if (stop) cancel = true
                         return destPath
-                    }catch(e){
+                    } catch(error) {
                         cancel = true
-                        throw e
+                        throw error
                     }
                 })
             })
@@ -503,7 +501,7 @@ export default class Waifu2x {
     }
 
     public static upscaleGIFs = async (sourceFolder: string, destFolder?: string, options?: Waifu2xGIFOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
-        if (!options) options = {}
+        options = {...options}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
@@ -585,7 +583,7 @@ export default class Waifu2x {
     }
 
     public static upscaleAnimatedWebp = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
-        if (!options) options = {}
+        options = {...options}
         if (!dest) dest = "./"
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
@@ -628,20 +626,25 @@ export default class Waifu2x {
         if (options.scale !== 1) {
             let counter = resume
             let total = frameArray.length
-            let queue: string[][] = []
-            if (!options.parallelFrames) options.parallelFrames = 1
             frameArray = frameArray.slice(resume)
-            while (frameArray.length) queue.push(frameArray.splice(0, options.parallelFrames))
+            const sem = new AsyncSemaphore(options.parallelFrames || 1)
             if (progress) progress(counter++, total)
-            for (let i = 0; i < queue.length; i++) {
-                await Promise.all(queue[i].map(async (f) => {
-                    const destPath = await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
-                    scaledFrames.push(destPath)
-                    const stop = progress ? progress(counter++, total) : false
-                    if (stop) cancel = true
-                }))
-                if (cancel) break
-            }
+            const promises = frameArray.map(async (f) => {
+                return await sem.add(async () => {
+                    if(cancel) return null
+                    try {
+                        const destPath = await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
+                        const stop = progress ? progress(counter++, total) : false
+                        if (stop) cancel = true
+                        return destPath
+                    } catch(error) {
+                        cancel = true
+                        throw error
+                    }
+                })
+            })
+            const results = await Promise.all(promises)
+            scaledFrames.push(...results.filter((r) => r !== null))
         } else {
             scaledFrames = frameArray
         }
@@ -657,7 +660,7 @@ export default class Waifu2x {
     }
 
     public static upscaleAnimatedWebps = async (sourceFolder: string, destFolder?: string, options?: Waifu2xAnimatedWebpOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
-        if (!options) options = {}
+        options = {...options}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
@@ -705,7 +708,7 @@ export default class Waifu2x {
     }
 
     public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean) => {
-        if (!options) options = {}
+        options = {...options}
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
@@ -763,19 +766,19 @@ export default class Waifu2x {
             let counter = resume
             let total = frameArray.length
             frameArray = frameArray.slice(resume)
-            const sem = new AsyncSemaphore(options.parallelFrames ?? 1)
+            const sem = new AsyncSemaphore(options.parallelFrames || 1)
             if (progress) progress(counter++, total)
             const promises = frameArray.map(async (f) => {
                 return await sem.add(async () => {
                     if(cancel) return null
-                    try{
+                    try {
                         const destPath = await Waifu2x.upscaleImage(f, `${upScaleDest}/${path.basename(f)}`, options)
                         const stop = progress ? progress(counter++, total) : false
                         if (stop) cancel = true
                         return destPath
-                    }catch(e){
+                    } catch(error) {
                         cancel = true
-                        throw e
+                        throw error
                     }
                 })
             })
@@ -838,7 +841,7 @@ export default class Waifu2x {
     }
 
     public static upscaleVideos = async (sourceFolder: string, destFolder?: string, options?: Waifu2xVideoOptions, totalProgress?: (current: number, total: number) => void | boolean, progress?: (current: number, total: number) => void | boolean) => {
-        if (!options) options = {}
+        options = {...options}
         const files = fs.readdirSync(sourceFolder)
         if (sourceFolder.endsWith("/")) sourceFolder = sourceFolder.slice(0, -1)
         const fileMap = files.map((file) => `${sourceFolder}/${file}`)
@@ -877,50 +880,50 @@ export default class Waifu2x {
     }
 }
 
-export type AsyncCallback<T> = () => Promise<T>;
-export class AsyncSemaphore {
-    private queue: AsyncCallback<any>[] = [];
-    private capacity: number;
-    private running: number = 0;
+type AsyncCallback<T> = () => Promise<T>
+class AsyncSemaphore {
+    private queue: AsyncCallback<any>[] = []
+    private capacity: number
+    private running: number = 0
 
     constructor(capacity: number) {
-        this.capacity = capacity;
+        this.capacity = capacity
     }
 
-    async add<T>(callback: AsyncCallback<T>): Promise<T> {
+    public add = <T>(callback: AsyncCallback<T>): Promise<T> => {
         return new Promise((resolve, reject) => {
             this.queue.push(async () => {
                 try {
-                    const result = await callback();
-                    resolve(result);
+                    const result = await callback()
+                    resolve(result)
                 } catch (error) {
-                    reject(error);
+                    reject(error)
                 } finally {
-                    this.running--;
-                    this.next();
+                    this.running--
+                    this.next()
                 }
             });
-            this.next();
-        });
+            this.next()
+        })
     }
 
-    async next() {
+    public next = async () => {
         if (this.running < this.capacity && this.queue.length > 0) {
-            const callback = this.queue.shift();
+            const callback = this.queue.shift()
             if (callback) {
-                this.running++;
-                callback();
+                this.running++
+                callback()
             }
         }
     }
 
-    setCapacity(capacity: number) {
-        this.capacity = capacity;
+    public setCapacity = (capacity: number) => {
+        this.capacity = capacity
     }
 
-    clear(){
-        this.queue = [];
-        this.running = 0;
+    public clear = () => {
+        this.queue = []
+        this.running = 0
     }
 }
 
