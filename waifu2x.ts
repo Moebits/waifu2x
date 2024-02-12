@@ -240,34 +240,9 @@ export default class Waifu2x {
             if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./waifu2x-ncnn-vulkan`
             if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./waifu2x-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
-            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -m "models-upconv_7_anime_style_art_rgb"`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
-            if (options.modelDir) {
-                command += ` -m "${options.modelDir}"`
-            } else {
-                command += ` -m "models-upconv_7_anime_style_art_rgb"`
-            }
-            /*
-            let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
-            if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-converter-cpp --model-dir "./models_rgb"`
-            command = `${program} -i "${sourcePath}" -o "${destPath}" -s`
-            if (options.noise) command += ` --noise-level ${options.noise}`
-            if (options.scale) command +=  ` --scale-ratio ${options.scale}`
-            if (options.mode) command += ` -m ${options.mode}`
-            if (options.pngCompression) command += ` -c ${options.pngCompression}`
-            if (options.jpgWebpQuality) command += ` -q ${options.jpgWebpQuality}`
-            if (options.blockSize) command += ` --block-size ${options.blockSize}`
-            if (options.disableGPU) command += ` --disable-gpu`
-            if (options.forceOpenCL) command += ` --force-OpenCL`
-            if (options.processor) command += ` -p ${options.processor}`
-            if (options.threads) command += ` -j ${options.threads}`
-            if (options.modelDir) {
-                if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
-                if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
-                command += ` --model-dir "${options.modelDir}"`
-            }*/
         } else if (options.upscaler === "real-esrgan") {
             let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
