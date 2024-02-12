@@ -53,6 +53,7 @@ export interface Waifu2xOptions {
     upscaler?: "waifu2x" | "real-esrgan" | "real-cugan" | string
     esrganPath?: string
     cuganPath?: string
+    scriptsPath?: string
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -222,7 +223,7 @@ export default class Waifu2x {
         } else if (options.upscaler === "real-cugan") {
             absolute = options.cuganPath ? path.normalize(options.cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
         } else {
-            absolute = path.join(__dirname, "../scripts")
+            absolute = options.scriptsPath ? path.normalize(options.scriptsPath).replace(/\\/g, "/") : path.join(__dirname, "../scripts")
         }
         const buffer = fs.readFileSync(sourcePath)
         const dimensions = imageSize(buffer)
