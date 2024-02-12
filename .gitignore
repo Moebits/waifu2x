@@ -3,3 +3,4 @@ node_modules
 images
 dist
 .DS_Store
+scripts/__pycache__

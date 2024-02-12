@@ -32,7 +32,6 @@ export type Waifu2xFormats =
     | "webp"
 
 
-export type Waifu2xUpscalers = "waifu2x" | "real-esrgan" 
 export interface Waifu2xOptions {
     noise?: 0 | 1 | 2 | 3
     scale?: number
@@ -51,8 +50,9 @@ export interface Waifu2xOptions {
     webpPath?: string
     limit?: number
     parallelFrames?: number
-    upscaler?: Waifu2xUpscalers
+    upscaler?: "waifu2x" | "real-esrgan" | "real-cugan" | string
     esrganPath?: string
+    cuganPath?: string
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -86,13 +86,15 @@ export default class Waifu2x {
 
     static processes: ChildProcess[] = []
 
-    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string) => {
+    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string, cuganPath?: string) => {
         if (process.platform === "win32") return
         const waifu2x = waifu2xPath ? path.normalize(waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
         const esrgan = esrganPath ? path.normalize(esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
+        const cugan = cuganPath ? path.normalize(cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
         const webp = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
-        fs.chmodSync(`${waifu2x}/waifu2x-converter-cpp.app`, "777")
+        fs.chmodSync(`${waifu2x}/mac/waifu2x-ncnn-vulkan`, "777")
         fs.chmodSync(`${esrgan}/mac/realesrgan-ncnn-vulkan`, "777")
+        fs.chmodSync(`${cugan}/mac/realcugan-ncnn-vulkan`, "777")
         fs.chmodSync(`${webp}/anim_dump.app`, "777")
         fs.chmodSync(`${webp}/cwebp.app`, "777")
         fs.chmodSync(`${webp}/dwebp.app`, "777")
@@ -213,10 +215,14 @@ export default class Waifu2x {
         }
         let destPath = path.join(folder, image).replace(/\\/g, "/")
         let absolute = ""
-        if (options.upscaler === "real-esrgan") {
-            absolute = options.esrganPath ? path.normalize(options.esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
-        } else {
+        if (options.upscaler === "waifu2x") {
             absolute = options.waifu2xPath ? path.normalize(options.waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
+        } else if (options.upscaler === "real-esrgan") {
+            absolute = options.esrganPath ? path.normalize(options.esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
+        } else if (options.upscaler === "real-cugan") {
+            absolute = options.cuganPath ? path.normalize(options.cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
+        } else {
+            absolute = path.join(__dirname, "../scripts")
         }
         const buffer = fs.readFileSync(sourcePath)
         const dimensions = imageSize(buffer)
@@ -229,15 +235,20 @@ export default class Waifu2x {
             }
         }
         let command = ""
-        if (options.upscaler === "real-esrgan") {
-            let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
-            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realesrgan-ncnn-vulkan`
+        if (options.upscaler === "waifu2x") {
+            let program = `cd "${absolute}" && cd windows && waifu2x-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./waifu2x-ncnn-vulkan`
+            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./waifu2x-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
-            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
-        } else {
+            if (options.modelDir) {
+                command += ` -m "${options.modelDir}"`
+            } else {
+                command += ` -m "models-upconv_7_anime_style_art_rgb"`
+            }
+            /*
             let program = `cd "${absolute}" && waifu2x-converter-cpp.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-converter-cpp.app --model-dir "./models_rgb"`
             if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-converter-cpp --model-dir "./models_rgb"`
@@ -256,8 +267,27 @@ export default class Waifu2x {
                 if (options.modelDir.endsWith("/")) options.modelDir = options.modelDir.slice(0, -1)
                 if (!path.isAbsolute(options.modelDir)) options.modelDir = path.join(local, options.modelDir)
                 command += ` --model-dir "${options.modelDir}"`
-            }
-
+            }*/
+        } else if (options.upscaler === "real-esrgan") {
+            let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
+            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realesrgan-ncnn-vulkan`
+            const ext = path.extname(source).replace(".", "")
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
+            if (options.scale) command +=  ` -s ${options.scale}`
+            if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
+        } else if (options.upscaler === "real-cugan") {
+            let program = `cd "${absolute}" && cd windows && realcugan-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realcugan-ncnn-vulkan`
+            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realcugan-ncnn-vulkan`
+            const ext = path.extname(source).replace(".", "")
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
+            if (options.noise) command += ` -n ${options.noise}`
+            if (options.scale) command +=  ` -s ${options.scale}`
+            if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
+        } else {
+            let program = `cd "${absolute}" && python3 upscale.py`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -m "${options.upscaler}"`
         }
         const child = child_process.exec(command)
         Waifu2x.addProcess(child)
@@ -278,8 +308,6 @@ export default class Waifu2x {
                 if (options.upscaler === "real-esrgan") {
                     const percent = Number(chunk.replace("%", "").replace(",", "."))
                     if (!Number.isNaN(percent)) progress?.(percent)
-                } else {
-                    error += chunk
                 }
             })
             child.on("close", () => {
@@ -819,6 +847,7 @@ export default class Waifu2x {
         let filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v]`, "-map", "[v]"]
         if (audio) filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
         let error = ""
+        console.log([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
         await new Promise<void>((resolve, reject) => {
             ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
             .save(finalDest)

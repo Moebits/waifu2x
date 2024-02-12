@@ -8,11 +8,14 @@
 </div>
 
 ### About
-This package uses the pre-built Windows x64 and macOS arm64 binaries from [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp) in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
+This package uses pre-built Waifu2x binaries in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
 to have [**ffmpeg**](https://ffmpeg.org/) installed. For a gui version, you can also see my [Waifu2x GUI app](https://github.com/Tenpi/Waifu2x-GUI).
 
-**New** - Added the [**Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN) upscaler which is faster and gives better results than waifu2x. To use it,
-set upscaler to "real-esrgan" in the options. When using Real-ESRGAN, you can only provide scale factors from 2-4 and all other waifu2x specific settings are ignored. At 4x upscale it uses the Anime4x model which is a bit slower, but provides better results, so it is recommended to upscale at 4x when using Real-ESRGAN.
+Real-ESRGAN - To use Real-ESRGAN instead, set the upscaler to "real-esrgan" in the options. When using Real-ESRGAN, you can only provide scale factors from 2-4 and all other waifu2x specific settings are ignored. At 4x upscale it uses the Anime4x model which is a bit slower, but provides better results, so it is recommended to upscale at 4x when using Real-ESRGAN.
+
+Real-CUGAN - To use Real-CUGAN instead, set the upscaler to "real-cugan" in the options. You can only provide scale factors 1/2/4 and all other waifu2x specific settings are ignored.
+
+PyTorch Models - To use a custom pytorch model, set the upscaler to an absolute path to the model. All other settings are ignored.
 
 ### Insall
 ```ts
@@ -21,7 +24,6 @@ npm install waifu2x
 
 ### Useful Links
 - [**waifu2x**](https://github.com/nagadomi/waifu2x)
-- [**waifu2x-converter-cpp**](https://github.com/DeadSix27/waifu2x-converter-cpp)
 
 #### Upscaling and/or de-noising images
 ```ts
@@ -35,7 +37,7 @@ await waifu2x.upscaleImage("./images/laffey.png", "./images/upscaled/laffey2x.pn
 end of all the new filenames (default is 2x).*/
 await waifu2x.upscaleImages("./images", "./upscaled", {recursive: true, rename: "2x"}, progress)
 
-/*You can also use absolute paths, or set a custom path to waifu2x if you are bundling it yourself. It must be the path to the folder that waifu2x-converter-cpp.exe is in.*/
+/*You can also use absolute paths, or set a custom path to waifu2x if you are bundling it yourself. It must be the path to the folder that waifu2x-ncnn-vulkan.exe is in.*/
 await waifu2x.upscaleImage("F:/Documents/image.png", "F:/Documents/image2x.png", {waifu2xPath: "F:/Documents/waifu2x"})
 
 /*This callback function can track progress. Return true in order to stop early.*/
