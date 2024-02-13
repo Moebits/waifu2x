@@ -739,7 +739,7 @@ export default class Waifu2x {
             fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
         }
         let frameExt = options.pngFrames ? "png" : "jpg" as any
-        let framerate = ["-framerate", `${options.framerate}`]
+        let framerate = ["-r", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
         let colorFlags = ["-color_primaries", "bt709", "-colorspace", "bt709", "-color_trc", "bt709"]
