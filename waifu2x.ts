@@ -7,6 +7,7 @@ import child_process, {ChildProcess} from "child_process"
 import GifEncoder from "gif-encoder"
 import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
+import rife from "rife-fps"
 
 const exec = util.promisify(child_process.exec)
 
@@ -54,6 +55,8 @@ export interface Waifu2xOptions {
     esrganPath?: string
     cuganPath?: string
     scriptsPath?: string
+    pngFrames?: boolean
+    rifePath?: string
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -81,13 +84,14 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     ffmpegPath?: string
     sdColorSpace?: boolean
     noResume?: boolean
+    fpsMultiplier?: number
 }
 
 export default class Waifu2x {
 
     static processes: ChildProcess[] = []
 
-    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string, cuganPath?: string) => {
+    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string, cuganPath?: string, rifePath?: string) => {
         if (process.platform === "win32") return
         const waifu2x = waifu2xPath ? path.normalize(waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
         const esrgan = esrganPath ? path.normalize(esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
@@ -101,6 +105,7 @@ export default class Waifu2x {
         fs.chmodSync(`${webp}/dwebp.app`, "777")
         fs.chmodSync(`${webp}/img2webp.app`, "777")
         fs.chmodSync(`${webp}/webpmux.app`, "777")
+        rife.chmod777(rifePath)
     }
 
     private static parseFilename = (source: string, dest: string, rename: string) => {
@@ -415,7 +420,8 @@ export default class Waifu2x {
     public static upscaleGIF = async (source: string, dest?: string, options?: Waifu2xGIFOptions, progress?: (current: number, total: number) => void | boolean) => {
         options = {...options}
         if (!dest) dest = "./"
-        const frames = await gifFrames({url: source, frames: "all", outputType: "jpg"})
+        let frameExt = options.pngFrames ? "png" : "jpg" as any
+        const frames = await gifFrames({url: source, frames: "all", outputType: frameExt})
         let {folder, image} = Waifu2x.parseFilename(source, dest, "2x")
         if (!path.isAbsolute(source) && !path.isAbsolute(dest)) {
             let local = __dirname.includes("node_modules") ? path.join(__dirname, "../../../") : path.join(__dirname, "..")
@@ -446,9 +452,9 @@ export default class Waifu2x {
         async function downloadFrames(frames: any[]) {
             const promiseArray = []
             for (let i = 0; i < frames.length; i += step) {
-                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.jpg`)
+                const writeStream = fs.createWriteStream(`${frameDest}/frame${i}.${frameExt}`)
                 frames[i].getImage().pipe(writeStream)
-                frameArray.push(`${frameDest}/frame${i}.jpg`)
+                frameArray.push(`${frameDest}/frame${i}.${frameExt}`)
                 delayArray.push(frames[i].frameInfo.delay)
                 promiseArray.push(Waifu2x.awaitStream(writeStream))
             }
@@ -704,7 +710,7 @@ export default class Waifu2x {
         return {width, height}
     }
 
-    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean) => {
+    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean, interlopProgress?: (percent: number) => void) => {
         options = {...options}
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
@@ -732,7 +738,8 @@ export default class Waifu2x {
             fs.mkdirSync(frameDest, {recursive: true})
             fs.writeFileSync(`${frameDest}/settings.json`, JSON.stringify(options))
         }
-        let framerate = ["-r", `${options.framerate}`]
+        let frameExt = options.pngFrames ? "png" : "jpg" as any
+        let framerate = ["-framerate", `${options.framerate}`]
         let crf = options.quality ? ["-crf", `${options.quality}`] : ["-crf", "16"]
         let codec = ["-vcodec", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
         let colorFlags = ["-color_primaries", "bt709", "-colorspace", "bt709", "-color_trc", "bt709"]
@@ -741,7 +748,7 @@ export default class Waifu2x {
         if (resume === 0) {
             await new Promise<void>((resolve) => {
                 ffmpeg(source).outputOptions([...framerate])
-                .save(`${frameDest}/frame%d.jpg`)
+                .save(`${frameDest}/frame%d.${frameExt}`)
                 .on("end", () => resolve())
             })
             await new Promise<void>((resolve, reject) => {
@@ -755,7 +762,7 @@ export default class Waifu2x {
         let upScaleDest = `${frameDest}/upscaled`
         if (!fs.existsSync(upScaleDest)) fs.mkdirSync(upScaleDest, {recursive: true})
         options.rename = ""
-        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === ".jpg")
+        let frameArray = fs.readdirSync(frameDest).map((f) => `${frameDest}/${f}`).filter((f) => path.extname(f) === `.${frameExt}`)
         frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
         let cancel = false
@@ -785,16 +792,22 @@ export default class Waifu2x {
             scaledFrames = frameArray
             upScaleDest = frameDest
         }
-        scaledFrames = scaledFrames.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
+        if (!options.fpsMultiplier) options.fpsMultiplier = 1
+        if (options.fpsMultiplier !== 1) {
+            let interlopDest = `${frameDest}/interlop`
+            if (!fs.existsSync(interlopDest)) fs.mkdirSync(interlopDest, {recursive: true})
+            upScaleDest = await rife.interpolateDirectory(upScaleDest, interlopDest, {multiplier: options.fpsMultiplier, ...options}, interlopProgress)
+        }
         let tempDest = `${upScaleDest}/temp.mp4`
         let finalDest = path.join(folder, image)
         let crop = "crop=trunc(iw/2)*2:trunc(ih/2)*2"
         if (!options.speed) options.speed = 1
         if (!options.reverse) options.reverse = false
+        let targetFramerate = ["-framerate", `${options.framerate * options.fpsMultiplier}`]
         if (audio) {
             let filter: string[] = ["-vf", `${crop}`]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.jpg`).input(audio).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.${frameExt}`).input(audio).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(`${upScaleDest}/${image}`)
                 .on("end", () => resolve())
             })
@@ -804,7 +817,7 @@ export default class Waifu2x {
                 let audioSpeed = options.pitch ? `asetrate=44100*${options.speed},aresample=44100` : `atempo=${options.speed}`
                 filter = ["-filter_complex", `[0:v]setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v];[0:a]${audioSpeed}${options.reverse ? ",areverse" : ""}[a]`, "-map", "[v]", "-map", "[a]"]
                 await new Promise<void>((resolve) => {
-                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+                    ffmpeg(`${upScaleDest}/${image}`).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
                     .save(tempDest)
                     .on("end", () => resolve())
                 })
@@ -812,7 +825,7 @@ export default class Waifu2x {
         } else {
             let filter = ["-filter_complex", `[0:v]${crop},setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%d.jpg`).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.${frameExt}`).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(tempDest)
                 .on("end", () => resolve())
             })
@@ -823,9 +836,8 @@ export default class Waifu2x {
         let filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v]`, "-map", "[v]"]
         if (audio) filter = ["-filter_complex", `[0:v]setpts=${factor}*PTS[v];[0:a]atempo=1[a]`, "-map", "[v]", "-map", "[a]"]
         let error = ""
-        console.log([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
         await new Promise<void>((resolve, reject) => {
-            ffmpeg(tempDest).outputOptions([...framerate, ...codec, ...crf, ...colorFlags, ...filter])
+            ffmpeg(tempDest).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
             .save(finalDest)
             .on("end", () => resolve())
             .on("error", (e) => {
