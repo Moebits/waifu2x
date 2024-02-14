@@ -45,7 +45,7 @@ export interface Waifu2xOptions {
     processor?: number
     threads?: number
     recursive?: boolean
-    modelDir?: string
+    modelDir?: "models-cunet" | "models-upconv_7_anime_style_art_rgb"
     rename?: string
     waifu2xPath?: string
     webpPath?: string
