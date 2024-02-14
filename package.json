@@ -1,6 +1,6 @@
 {
   "name": "waifu2x",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "2x upscaling of images with waifu2x",
   "main": "dist/waifu2x.js",
   "types": "dist/waifu2x.d.ts",
@@ -35,6 +35,6 @@
     "gif-encoder": "^0.7.2",
     "gif-frames": "github:tenpi/gif-frames#no-cumulative",
     "image-size": "^1.0.2",
-    "rife-fps": "^0.0.5"
+    "rife-fps": "^0.0.6"
   }
 }

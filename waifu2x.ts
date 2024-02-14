@@ -34,7 +34,7 @@ export type Waifu2xFormats =
 
 
 export interface Waifu2xOptions {
-    noise?: 0 | 1 | 2 | 3
+    noise?: -1 | 0 | 1 | 2 | 3
     scale?: number
     mode?: "noise" | "scale" | "noise-scale"
     blockSize?: number
@@ -57,6 +57,7 @@ export interface Waifu2xOptions {
     scriptsPath?: string
     pngFrames?: boolean
     rifePath?: string
+    rifeModel?: string
 }
 
 export interface Waifu2xGIFOptions extends Waifu2xOptions {
@@ -253,7 +254,7 @@ export default class Waifu2x {
             if (options.modelDir) command += ` -m "${options.modelDir}"`
         } else if (options.upscaler === "real-esrgan") {
             let program = `cd "${absolute}" && realesrgan-ncnn-vulkan.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && ./realesrgan-ncnn-vulka.app`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
