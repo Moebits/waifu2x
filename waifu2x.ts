@@ -208,6 +208,7 @@ export default class Waifu2x {
     public static upscaleImage = async (source: string, dest?: string, options?: Waifu2xOptions, progress?: (percent?: number) => void | boolean) => {
         options = {...options}
         if (!dest) dest = "./"
+        if (!options.upscaler) options.upscaler = "waifu2x"
         let sourcePath = source
         if (options.rename === undefined) options.rename = "2x"
         let {folder, image} = Waifu2x.parseFilename(source, dest, options.rename)
@@ -246,9 +247,10 @@ export default class Waifu2x {
             if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./waifu2x-ncnn-vulkan`
             if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./waifu2x-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
-            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -m "models-upconv_7_anime_style_art_rgb"`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
+            if (options.modelDir) command += ` -m "${options.modelDir}"`
         } else if (options.upscaler === "real-esrgan") {
             let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
@@ -710,7 +712,7 @@ export default class Waifu2x {
         return {width, height}
     }
 
-    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean, interlopProgress?: (percent: number) => void) => {
+    public static upscaleVideo = async (source: string, dest?: string, options?: Waifu2xVideoOptions, progress?: (current: number, total: number) => void | boolean, interlopProgress?: (percent: number) => void | boolean) => {
         options = {...options}
         if (!dest) dest = "./"
         if (options.ffmpegPath) ffmpeg.setFfmpegPath(options.ffmpegPath)
@@ -748,7 +750,7 @@ export default class Waifu2x {
         if (resume === 0) {
             await new Promise<void>((resolve) => {
                 ffmpeg(source).outputOptions([...framerate])
-                .save(`${frameDest}/frame%08d.${frameExt}`)
+                .save(`${frameDest}/frame%d.${frameExt}`)
                 .on("end", () => resolve())
             })
             await new Promise<void>((resolve, reject) => {
@@ -796,7 +798,8 @@ export default class Waifu2x {
         if (options.fpsMultiplier !== 1) {
             let interlopDest = `${frameDest}/interlop`
             if (!fs.existsSync(interlopDest)) fs.mkdirSync(interlopDest, {recursive: true})
-            upScaleDest = await rife.interpolateDirectory(upScaleDest, interlopDest, {multiplier: options.fpsMultiplier, ...options}, interlopProgress)
+            const canceled = await rife.interpolateDirectory(upScaleDest, interlopDest, {multiplier: options.fpsMultiplier, ...options}, interlopProgress)
+            if (!canceled) upScaleDest = interlopDest
         }
         let tempDest = `${upScaleDest}/temp.mp4`
         let finalDest = path.join(folder, image)
@@ -807,7 +810,7 @@ export default class Waifu2x {
         if (audio) {
             let filter: string[] = ["-vf", `${crop}`]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%08d.${frameExt}`).input(audio).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.${frameExt}`).input(audio).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(`${upScaleDest}/${image}`)
                 .on("end", () => resolve())
             })
@@ -825,7 +828,7 @@ export default class Waifu2x {
         } else {
             let filter = ["-filter_complex", `[0:v]${crop},setpts=${1.0/options.speed}*PTS${options.reverse ? ",reverse": ""}[v]`, "-map", "[v]"]
             await new Promise<void>((resolve) => {
-                ffmpeg(`${upScaleDest}/frame%08d.${frameExt}`).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
+                ffmpeg(`${upScaleDest}/frame%d.${frameExt}`).outputOptions([...targetFramerate, ...codec, ...crf, ...colorFlags, ...filter])
                 .save(tempDest)
                 .on("end", () => resolve())
             })
