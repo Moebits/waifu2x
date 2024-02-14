@@ -270,7 +270,8 @@ export default class Waifu2x {
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else {
-            let program = `cd "${absolute}" && python3 upscale.py`
+            let python = process.platform === "darwin" ? "/usr/local/bin/python3" : "python3"
+            let program = `cd "${absolute}" && ${python} upscale.py`
             command = `${program} -i "${sourcePath}" -o "${destPath}" -m "${options.upscaler}"`
         }
         const child = child_process.exec(command)
