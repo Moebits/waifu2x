@@ -97,9 +97,9 @@ export default class Waifu2x {
         const esrgan = esrganPath ? path.normalize(esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
         const cugan = cuganPath ? path.normalize(cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
         const webp = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
-        fs.chmodSync(`${waifu2x}/mac/waifu2x-ncnn-vulkan`, "777")
-        fs.chmodSync(`${esrgan}/mac/realesrgan-ncnn-vulkan`, "777")
-        fs.chmodSync(`${cugan}/mac/realcugan-ncnn-vulkan`, "777")
+        fs.chmodSync(`${waifu2x}/waifu2x-ncnn-vulkan.app`, "777")
+        fs.chmodSync(`${esrgan}/realesrgan-ncnn-vulkan.app`, "777")
+        fs.chmodSync(`${cugan}/realcugan-ncnn-vulkan.app`, "777")
         fs.chmodSync(`${webp}/anim_dump.app`, "777")
         fs.chmodSync(`${webp}/cwebp.app`, "777")
         fs.chmodSync(`${webp}/dwebp.app`, "777")
@@ -243,26 +243,26 @@ export default class Waifu2x {
         }
         let command = ""
         if (options.upscaler === "waifu2x") {
-            let program = `cd "${absolute}" && cd windows && waifu2x-ncnn-vulkan.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./waifu2x-ncnn-vulkan`
-            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./waifu2x-ncnn-vulkan`
+            let program = `cd "${absolute}" && waifu2x-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan.app`
+            if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
             if (options.modelDir) command += ` -m "${options.modelDir}"`
         } else if (options.upscaler === "real-esrgan") {
-            let program = `cd "${absolute}" && cd windows && realesrgan-ncnn-vulkan.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realesrgan-ncnn-vulkan`
-            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realesrgan-ncnn-vulkan`
+            let program = `cd "${absolute}" && realesrgan-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./realesrgan-ncnn-vulka.app`
+            if (process.platform === "linux") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else if (options.upscaler === "real-cugan") {
-            let program = `cd "${absolute}" && cd windows && realcugan-ncnn-vulkan.exe`
-            if (process.platform === "darwin") program = `cd "${absolute}" && cd mac && ./realcugan-ncnn-vulkan`
-            if (process.platform === "linux") program = `cd "${absolute}" && cd linux && ./realcugan-ncnn-vulkan`
+            let program = `cd "${absolute}" && realcugan-ncnn-vulkan.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan.app`
+            if (process.platform === "linux") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.noise) command += ` -n ${options.noise}`
