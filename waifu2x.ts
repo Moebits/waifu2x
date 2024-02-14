@@ -799,8 +799,8 @@ export default class Waifu2x {
         if (options.fpsMultiplier !== 1) {
             let interlopDest = `${frameDest}/interlop`
             if (!fs.existsSync(interlopDest)) fs.mkdirSync(interlopDest, {recursive: true})
-            const canceled = await rife.interpolateDirectory(upScaleDest, interlopDest, {multiplier: options.fpsMultiplier, ...options}, interlopProgress)
-            if (!canceled) upScaleDest = interlopDest
+            cancel = await rife.interpolateDirectory(upScaleDest, interlopDest, {multiplier: options.fpsMultiplier, ...options}, interlopProgress)
+            if (!cancel) upScaleDest = interlopDest
         }
         let tempDest = `${upScaleDest}/temp.mp4`
         let finalDest = path.join(folder, image)
