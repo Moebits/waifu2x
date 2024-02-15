@@ -863,6 +863,12 @@ export default class Waifu2x {
         return retArray
     }
 
+    public static pdfDimensions = async (source: string, options?: Waifu2xPDFOptions) => {
+        const output = await pdf2image.convert(source, {height: options.downscaleHeight ? options.downscaleHeight : null, page_numbers: [1]}) as Uint8Array[]
+        const dimensions = imageSize(output[0])
+        return {width: dimensions.width, height: dimensions.height, image: `data:image/png;base64,${Buffer.from(output[0].buffer).toString("base64")}`}
+    }
+
     public static dumpPDFFrames = async (source: string, savePath: string, options?: Waifu2xPDFOptions) => {
         const saveFilename = path.basename(savePath, path.extname(savePath))
         const output = await pdf2image.convert(source, {height: options.downscaleHeight ? options.downscaleHeight : null})
