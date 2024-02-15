@@ -108,7 +108,18 @@ let totalProgress = (current: number, total: number) => {
 }
 ```
 
-#### Resuming GIFs/Videos
+#### Upscaling PDFs
+```ts
+/*Upscaling PDFs works the same as it does for gifs/videos. You can downscale height prior to upscaling.*/
+await waifu2x.upscalePDF("./images/pdfs/hello.pdf", "./images/pdfs/hello2x.pdf", {scale: 2, downscaleHeight: 1000}, progress)
+
+/*You can track progress the same as with GIFs/videos.*/
+let progress = (current: number, total: number) => {
+  console.log(`Current Frame: ${current} Total Frames: ${total}`)
+}
+```
+
+#### Resuming GIFs/Videos/PDFs
 
 If the program is terminated in the middle of upscaling a GIF or video, assuming that you provide the same options and that you didn't delete the frames folder, it will resume where it left off. This is useful for upscaling large GIFs/videos in multiple sittings.
 
@@ -139,25 +150,25 @@ export type Waifu2xFormats =
 #### Waifu2xOptions
 ```ts
 export interface Waifu2xOptions {
-    noise?: 0 | 1 | 2 | 3
+    upscaler?: "waifu2x" | "real-esrgan" | "real-cugan" | string
+    noise?: -1 | 0 | 1 | 2 | 3
     scale?: number
     mode?: "noise" | "scale" | "noise-scale"
-    blockSize?: number
     pngCompression?: number
     jpgWebpQuality?: number
-    disableGPU?: boolean
-    forceOpenCL?: boolean
-    processor?: number
     threads?: number
-    modelDir?: string
     recursive?: boolean
     rename?: string
-    waifu2xPath?: string
     limit?: number
     parallelFrames?: number
+    waifu2xPath?: string
+    waifu2xModel?: "models-cunet" | "models-upconv_7_anime_style_art_rgb"
     webpPath?: string
-    upscaler?: string
     esrganPath?: string
+    cuganPath?: string
+    scriptsPath?: string
+    rifePath?: string
+    rifeModel?: string
 }
 ```
 
@@ -167,8 +178,9 @@ export interface Waifu2xGIFOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    cumulative?: boolean
-    transparency?: boolean
+    transparentColor?: string
+    noResume?: boolean
+    pngFrames?: boolean
 }
 ```
 
@@ -178,7 +190,7 @@ export interface Waifu2xAnimatedWebpOptions extends Waifu2xOptions {
     quality?: number
     speed?: number
     reverse?: boolean
-    webpPath?: string
+    noResume?: boolean
 }
 ```
 
@@ -190,7 +202,21 @@ export interface Waifu2xVideoOptions extends Waifu2xOptions {
     speed?: number
     reverse?: boolean
     pitch?: boolean
+    sdColorSpace?: boolean
+    noResume?: boolean
+    pngFrames?: boolean
+    fpsMultiplier?: number
     ffmpegPath?: string
+}
+```
+
+#### Waifu2xPDFOptions
+```ts
+export interface Waifu2xPDFOptions extends Waifu2xOptions {
+    quality?: number
+    reverse?: boolean
+    noResume?: boolean
+    pngFrames?: boolean
 }
 ```
 <details>
