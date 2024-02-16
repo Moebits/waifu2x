@@ -37,7 +37,7 @@ export type Waifu2xFormats =
 
 
 export interface Waifu2xOptions {
-    upscaler?: "waifu2x" | "real-esrgan" | "real-cugan" | string
+    upscaler?: "waifu2x" | "real-esrgan" | "real-cugan" | "anime4k" | string
     noise?: -1 | 0 | 1 | 2 | 3
     scale?: number
     mode?: "noise" | "scale" | "noise-scale"
@@ -53,6 +53,7 @@ export interface Waifu2xOptions {
     webpPath?: string
     esrganPath?: string
     cuganPath?: string
+    anime4kPath?: string
     scriptsPath?: string
     rifePath?: string
     rifeModel?: string
@@ -107,15 +108,17 @@ export default class Waifu2x {
         Waifu2x.processes = Waifu2x.processes.filter((p) => p.pid !== process.pid)
     }
 
-    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string, cuganPath?: string, rifePath?: string) => {
+    public static chmod777 = (waifu2xPath?: string, webpPath?: string, esrganPath?: string, cuganPath?: string, anime4kPath?: string, rifePath?: string) => {
         if (process.platform === "win32") return
         const waifu2x = waifu2xPath ? path.normalize(waifu2xPath).replace(/\\/g, "/") : path.join(__dirname, "../waifu2x")
         const esrgan = esrganPath ? path.normalize(esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
         const cugan = cuganPath ? path.normalize(cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
+        const anime4k = anime4kPath ? path.normalize(anime4kPath).replace(/\\/g, "/") : path.join(__dirname, "../anime4k")
         const webp = webpPath ? path.normalize(webpPath).replace(/\\/g, "/") : path.join(__dirname, "../webp")
         fs.chmodSync(`${waifu2x}/waifu2x-ncnn-vulkan.app`, "777")
         fs.chmodSync(`${esrgan}/realesrgan-ncnn-vulkan.app`, "777")
         fs.chmodSync(`${cugan}/realcugan-ncnn-vulkan.app`, "777")
+        fs.chmodSync(`${anime4k}/Anime4KCPP_CLI.app`, "777")
         fs.chmodSync(`${webp}/anim_dump.app`, "777")
         fs.chmodSync(`${webp}/cwebp.app`, "777")
         fs.chmodSync(`${webp}/dwebp.app`, "777")
@@ -238,6 +241,8 @@ export default class Waifu2x {
             absolute = options.esrganPath ? path.normalize(options.esrganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-esrgan")
         } else if (options.upscaler === "real-cugan") {
             absolute = options.cuganPath ? path.normalize(options.cuganPath).replace(/\\/g, "/") : path.join(__dirname, "../real-cugan")
+        } else if (options.upscaler === "anime4k") {
+            absolute = options.anime4kPath ? path.normalize(options.anime4kPath).replace(/\\/g, "/") : path.join(__dirname, "../anime4k")
         } else {
             absolute = options.scriptsPath ? path.normalize(options.scriptsPath).replace(/\\/g, "/") : path.join(__dirname, "../scripts")
         }
@@ -278,6 +283,12 @@ export default class Waifu2x {
             if (options.noise) command += ` -n ${options.noise}`
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
+        } else if (options.upscaler === "anime4k") {
+            let program = `cd "${absolute}" && Anime4KCPP_CLI.exe`
+            if (process.platform === "darwin") program = `cd "${absolute}" && ./Anime4KCPP_CLI.app`
+            if (process.platform === "linux") program = `cd "${absolute}" && ./Anime4KCPP_CLI`
+            command = `${program} -i "${sourcePath}" -o "${destPath}" -A`
+            if (options.scale) command +=  ` -z ${options.scale}`
         } else {
             let python = process.platform === "darwin" ? "PYTORCH_ENABLE_MPS_FALLBACK=1 /usr/local/bin/python3" : "python3"
             let program = `cd "${absolute}" && ${python} upscale.py`

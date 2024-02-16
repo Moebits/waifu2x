@@ -20,7 +20,8 @@ device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is
 
 def load_image(image, downscale):
     img = Image.open(image).convert("RGB")
-    img.thumbnail((int(downscale), int(downscale)))
+    if downscale:
+        img.thumbnail((int(downscale), int(downscale)))
     transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
     return transform(img).to(device)
 

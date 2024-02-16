@@ -15,6 +15,9 @@ Real-ESRGAN - To use Real-ESRGAN instead, set the upscaler to "real-esrgan" in t
 
 Real-CUGAN - To use Real-CUGAN instead, set the upscaler to "real-cugan" in the options. You can only provide scale factors 1/2/4 and all other waifu2x specific settings are ignored.
 
+Anime4k - To use Anime4k, set the upscaler to "anime4k" in the options. Only the scale option is used. This is a fast upscaler suited for 
+videos/gifs.
+
 PyTorch Models - To use a custom pytorch model, set the upscaler to an absolute path to the model. All other settings are ignored.
 
 ### Insall
