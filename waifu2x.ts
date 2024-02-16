@@ -280,7 +280,13 @@ export default class Waifu2x {
             if (process.platform === "linux") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
-            if (options.noise) command += ` -n ${options.noise}`
+            if (options.noise) {
+                if (Number(options.scale) > 2) {
+                    if (Number(options.noise) === 2) options.noise = 3
+                    if (Number(options.noise) === 1) options.noise = 0
+                }
+                command += ` -n ${options.noise}`
+            }
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else if (options.upscaler === "anime4k") {
