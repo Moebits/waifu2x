@@ -9,7 +9,7 @@ import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
 // @ts-ignore
 import PDFDocument from "@react-pdf/pdfkit"
-import pdf2image from "pdf-img-convert"
+import pdf2image from "./pdf-img-convert"
 import rife from "rife-fps"
 
 const exec = util.promisify(child_process.exec)
@@ -864,14 +864,14 @@ export default class Waifu2x {
     }
 
     public static pdfDimensions = async (source: string, options?: Waifu2xPDFOptions) => {
-        const output = await pdf2image.convert(source, {height: options.downscaleHeight ? options.downscaleHeight : null, page_numbers: [1]}) as Uint8Array[]
+        const output = await pdf2image(source, {height: options?.downscaleHeight ? options.downscaleHeight : null, page_numbers: [1]}) as Uint8Array[]
         const dimensions = imageSize(output[0])
         return {width: dimensions.width, height: dimensions.height, image: `data:image/png;base64,${Buffer.from(output[0].buffer).toString("base64")}`}
     }
 
     public static dumpPDFFrames = async (source: string, savePath: string, options?: Waifu2xPDFOptions) => {
         const saveFilename = path.basename(savePath, path.extname(savePath))
-        const output = await pdf2image.convert(source, {height: options.downscaleHeight ? options.downscaleHeight : null})
+        const output = await pdf2image(source, {height: options?.downscaleHeight ? options.downscaleHeight : null})
         for (let i = 0; i < output.length; i++) {
             fs.writeFileSync(path.join(savePath, `${saveFilename}-${String(i+1).padStart(3, "0")}.png`), output[i])
         }
