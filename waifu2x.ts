@@ -278,7 +278,7 @@ export default class Waifu2x {
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else {
-            let python = process.platform === "darwin" ? "PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 /usr/local/bin/python3" : "python3"
+            let python = process.platform === "darwin" ? "PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7 PYTORCH_ENABLE_MPS_FALLBACK=1 /usr/local/bin/python3" : "python3"
             let program = `cd "${absolute}" && ${python} upscale.py`
             command = `${program} -i "${sourcePath}" -o "${destPath}" -m "${options.upscaler}"`
         }
