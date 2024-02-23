@@ -258,7 +258,7 @@ export default class Waifu2x {
         }
         let command = ""
         if (options.upscaler === "waifu2x") {
-            let program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan.exe`
+            let program = `cd "${absolute}" && waifu2x-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
@@ -267,7 +267,7 @@ export default class Waifu2x {
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
             if (options.waifu2xModel) command += ` -m "${options.waifu2xModel}"`
         } else if (options.upscaler === "real-esrgan") {
-            let program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan.exe`
+            let program = `cd "${absolute}" && realesrgan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
@@ -275,7 +275,7 @@ export default class Waifu2x {
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else if (options.upscaler === "real-cugan") {
-            let program = `cd "${absolute}" && ./realcugan-ncnn-vulkan.exe`
+            let program = `cd "${absolute}" && realcugan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan`
             const ext = path.extname(source).replace(".", "")
@@ -290,7 +290,7 @@ export default class Waifu2x {
             if (options.scale) command +=  ` -s ${options.scale}`
             if (options.threads) command += ` -j ${options.threads}:${options.threads}:${options.threads}`
         } else if (options.upscaler === "anime4k") {
-            let program = `cd "${absolute}" && ./Anime4KCPP_CLI.exe`
+            let program = `cd "${absolute}" && Anime4KCPP_CLI.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./Anime4KCPP_CLI.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./Anime4KCPP_CLI`
             command = `${program} -i "${sourcePath}" -o "${destPath}" -A`
@@ -936,6 +936,7 @@ export default class Waifu2x {
         frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
         let cancel = false
+        console.log(frameArray)
         if (options.scale !== 1) {
             let counter = resume
             let total = frameArray.length
