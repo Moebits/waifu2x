@@ -9,7 +9,7 @@ import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
 // @ts-ignore
 import PDFDocument from "@react-pdf/pdfkit"
-import pdf2image from "./pdf-img-convert"
+import {pdfImages} from "./pdf-images"
 import rife from "rife-fps"
 
 const exec = util.promisify(child_process.exec)
@@ -883,14 +883,14 @@ export default class Waifu2x {
     }
 
     public static pdfDimensions = async (source: string, options?: Waifu2xPDFOptions) => {
-        const output = await pdf2image(source, {height: options?.downscaleHeight ? options.downscaleHeight : null, page_numbers: [1]}) as Uint8Array[]
+        const output = await pdfImages(source, {height: options?.downscaleHeight ? options.downscaleHeight : null, pageNumbers: [1], type: options?.pngFrames ? "png" : "jpg"}) as Uint8Array[]
         const dimensions = imageSize(output[0])
         return {width: dimensions.width, height: dimensions.height, image: `data:image/png;base64,${Buffer.from(output[0].buffer).toString("base64")}`}
     }
 
     public static dumpPDFFrames = async (source: string, savePath: string, options?: Waifu2xPDFOptions) => {
         const saveFilename = path.basename(savePath, path.extname(savePath))
-        const output = await pdf2image(source, {height: options?.downscaleHeight ? options.downscaleHeight : null})
+        const output = await pdfImages(source, {height: options?.downscaleHeight ? options.downscaleHeight : null, type: options?.pngFrames ? "png" : "jpg"})
         for (let i = 0; i < output.length; i++) {
             fs.writeFileSync(path.join(savePath, `${saveFilename}-${String(i+1).padStart(3, "0")}.png`), output[i])
         }
@@ -936,7 +936,6 @@ export default class Waifu2x {
         frameArray = frameArray.sort(new Intl.Collator(undefined, {numeric: true, sensitivity: "base"}).compare)
         let scaledFrames = fs.readdirSync(upScaleDest).map((f) => `${upScaleDest}/${path.basename(f)}`)
         let cancel = false
-        console.log(frameArray)
         if (options.scale !== 1) {
             let counter = resume
             let total = frameArray.length
