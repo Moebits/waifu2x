@@ -1,4 +1,4 @@
-import {createCanvas, loadImage} from "@napi-rs/canvas"
+import {createCanvas, loadImage} from "canvas"
 import fs from "fs"
 
 const pdfjs = require("pdfjs-dist/build/pdf.js")
@@ -30,8 +30,8 @@ const renderPage = async (pdfDocument: any, pageNumber: number, options?: any) =
             ctx.canvas.height = height
         },
         destroy: (ctx: any) => {
-            ctx.canvas.width = 1
-            ctx.canvas.height = 1
+            ctx.canvas.width = 0
+            ctx.canvas.height = 0
             ctx.canvas = null
             ctx.context = null
         }
