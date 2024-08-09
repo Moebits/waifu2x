@@ -1,6 +1,6 @@
 <div align="left">
   <p>
-    <a href="https://tenpi.github.io/waifu2x/"><img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/waifu2xlogo.png" width="500" /></a>
+    <a href="https://moebits.github.io/waifu2x/"><img src="https://raw.githubusercontent.com/Moebits/waifu2x/master/assets/waifu2xlogo.png" width="500" /></a>
   </p>
   <p>
     <a href="https://nodei.co/npm/waifu2x/"><img src="https://nodei.co/npm/waifu2x.png" /></a>
@@ -9,7 +9,7 @@
 
 ### About
 This package uses pre-built Waifu2x binaries in order to upscale anime-styled images with node.js. For upscaling videos, you will also need
-to have [**ffmpeg**](https://ffmpeg.org/) installed. For a gui version, you can also see my [Waifu2x GUI app](https://github.com/Tenpi/Waifu2x-GUI).
+to have [**ffmpeg**](https://ffmpeg.org/) installed. For a gui version, you can also see my [Waifu2x GUI app](https://github.com/Moebits/Waifu2x-GUI).
 
 Real-ESRGAN - To use Real-ESRGAN instead, set the upscaler to "real-esrgan" in the options. When using Real-ESRGAN, you can only provide scale factors from 2-4 and all other waifu2x specific settings are ignored. At 4x upscale it uses the Anime4x model which is a bit slower, but provides better results, so it is recommended to upscale at 4x when using Real-ESRGAN.
 
@@ -229,10 +229,10 @@ export interface Waifu2xPDFOptions extends Waifu2xOptions {
 
 `laffey.jpg`
 
-<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey.jpg" />
+<img src="https://raw.githubusercontent.com/Moebits/waifu2x/master/assets/laffey.jpg" />
 
 `laffey2x.png`
 
-<img src="https://raw.githubusercontent.com/Tenpi/waifu2x/master/assets/laffey2x.jpg" />
+<img src="https://raw.githubusercontent.com/Moebits/waifu2x/master/assets/laffey2x.jpg" />
 
 </details>
