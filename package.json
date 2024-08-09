@@ -16,12 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Tenpi/waifu2x"
+    "url": "https://github.com/Moebits/waifu2x"
   },
-  "author": "Tenpi",
+  "author": "Moebits",
   "license": "MIT",
   "devDependencies": {
-    "@tenpi/tslint": "^1.0.5",
     "@types/fluent-ffmpeg": "^2.1.16",
     "@types/get-pixels": "^3.3.2",
     "@types/gif-encoder": "^0.7.1",
