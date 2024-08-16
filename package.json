@@ -34,10 +34,10 @@
     "fluent-ffmpeg": "^2.1.2",
     "get-pixels": "^3.3.2",
     "gif-encoder": "^0.7.2",
-    "gif-frames": "github:tenpi/gif-frames#no-cumulative",
+    "gif-frames": "github:Moebits/gif-frames#no-cumulative",
     "image-size": "^1.0.2",
     "is-url": "^1.2.4",
-    "pdfjs-dist": "github:Tenpi/pdfjs-dist",
+    "pdfjs-dist": "github:Moebits/pdfjs-dist",
     "rife-fps": "^0.0.7"
   }
 }
