@@ -5,8 +5,7 @@ const start = async () => {
     const progress = (current: number, total: number) => {
         console.log(`${current}/${total}`)
     }
-    const result = await waifu2x.upscalePDF("./images/pdfs/pdf.pdf", "./images/pdfs/pdf2.pdf", {downscaleHeight: 1000})
-    //const result = await waifu2x.upscaleImage("./images/img.png", "./images/upscale/img2x.png", {upscaler: "real-esrgan", scale: 4})
+    const result = await waifu2x.upscaleGIF("./images/gifs/chibi.gif", "./images/gifs/chibi2x.gif", {upscaler: "real-cugan", scale: 1})
     console.log(result)
 }
 start()

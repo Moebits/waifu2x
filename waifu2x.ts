@@ -7,7 +7,6 @@ import child_process, {ChildProcess} from "child_process"
 import GifEncoder from "gif-encoder"
 import getPixels from "get-pixels"
 import gifFrames from "gif-frames"
-// @ts-ignore
 import PDFDocument from "@react-pdf/pdfkit"
 import {pdfImages} from "./pdf-images"
 import rife from "rife-fps"
@@ -261,6 +260,7 @@ export default class Waifu2x {
             let program = `cd "${absolute}" && waifu2x-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan`
+            if (process.platform === "linux" && process.arch === "arm64") program = `cd "${absolute}" && ./waifu2x-ncnn-vulkan-arm`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.scale) command +=  ` -s ${options.scale}`
@@ -270,6 +270,7 @@ export default class Waifu2x {
             let program = `cd "${absolute}" && realesrgan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan`
+            if (process.platform === "linux" && process.arch === "arm64") program = `cd "${absolute}" && ./realesrgan-ncnn-vulkan-arm`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext} -n ${options.scale === 4 ? "realesrgan-x4plus-anime" : "realesr-animevideov3"}`
             if (options.scale) command +=  ` -s ${options.scale}`
@@ -278,6 +279,7 @@ export default class Waifu2x {
             let program = `cd "${absolute}" && realcugan-ncnn-vulkan.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan`
+            if (process.platform === "linux" && process.arch === "arm64") program = `cd "${absolute}" && ./realcugan-ncnn-vulkan-arm`
             const ext = path.extname(source).replace(".", "")
             command = `${program} -i "${sourcePath}" -o "${destPath}" -f ${ext}`
             if (options.noise) {
@@ -293,6 +295,7 @@ export default class Waifu2x {
             let program = `cd "${absolute}" && Anime4KCPP_CLI.exe`
             if (process.platform === "darwin") program = `cd "${absolute}" && ./Anime4KCPP_CLI.app`
             if (process.platform === "linux") program = `cd "${absolute}" && ./Anime4KCPP_CLI`
+            if (process.platform === "linux" && process.arch === "arm64") program = `cd "${absolute}" && ./ac_cli`
             command = `${program} -i "${sourcePath}" -o "${destPath}" -A`
             if (options.scale) command +=  ` -z ${options.scale}`
         } else {

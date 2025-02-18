@@ -1,6 +1,6 @@
 {
   "name": "waifu2x",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "2x upscaling of images with waifu2x",
   "main": "dist/waifu2x.js",
   "types": "dist/waifu2x.d.ts",
@@ -26,7 +26,7 @@
     "@types/gif-encoder": "^0.7.1",
     "@types/node": "^12.11.6",
     "@types/omggif": "^1.0.2",
-    "typescript": "^4.1.3"
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.54",

@@ -1,4 +1,4 @@
-import {createCanvas, loadImage} from "@napi-rs/canvas"
+import {createCanvas} from "@napi-rs/canvas"
 import fs from "fs"
 
 const pdfjs = require("pdfjs-dist/build/pdf.js")
